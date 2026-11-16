@@ -2,7 +2,7 @@ name: HelloWorld
 options:
   bundleIdPrefix: com.fpala
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "27.0"
 
 targets:
   HelloWorld:
@@ -10,10 +10,18 @@ targets:
     platform: iOS
     sources:
       - path: HelloWorld
+    info:
+      path: Info.plist
+      properties:
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+            UIWindowSceneSessionRoleExternalDisplayNonInteractive:
+              - UISceneConfigurationName: External Display
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fpala.helloworld
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
         SWIFT_VERSION: "5.9"
