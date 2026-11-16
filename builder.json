@@ -1,0 +1,21 @@
+{
+  "project": "HelloWorld",
+  "platform": "ios",
+  "github": {
+    "owner": "palazz94",
+    "repo": "hello-world-ios"
+  },
+  "provider": "github",
+  "codemagic": {},
+  "bitrise": {},
+  "ios": {
+    "scheme": "HelloWorld",
+    "bundleId": "com.example.HelloWorld"
+  },
+  "flutter": {
+    "watch": {}
+  },
+  "reactNative": {},
+  "kmp": {},
+  "mobai": {}
+}
