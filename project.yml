@@ -2,7 +2,7 @@ name: HelloWorld
 options:
   bundleIdPrefix: com.fpala
   deploymentTarget:
-    iOS: "27.0"
+    iOS: "27.1"
 
 targets:
   HelloWorld:
