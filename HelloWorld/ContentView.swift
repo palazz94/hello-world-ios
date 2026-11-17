@@ -1,4 +1,7 @@
 import SwiftUI
+import os
+
+private let logger = Logger(subsystem: "HelloWorld", category: "ContentView")
 
 struct ContentView: View {
     // iPhone Duo: outer display is compact width, inner display is regular width.
@@ -7,7 +10,7 @@ struct ContentView: View {
     @State private var score: Int = 0
 
     var body: some View {
-        let _ = print ("ContextView body called")
+        let _ = logger.notice("ContentView body called")
         
         VStack(spacing: 16) {
             Text(horizontalSizeClass == .regular // .compact se schermo esterno, .regular se schermo interno
