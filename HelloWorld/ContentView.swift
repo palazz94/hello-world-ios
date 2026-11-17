@@ -7,6 +7,8 @@ struct ContentView: View {
     @State private var score: Int = 0
 
     var body: some View {
+        let _ = print ("ContextView body called")
+        
         VStack(spacing: 16) {
             Text(horizontalSizeClass == .regular // .compact se schermo esterno, .regular se schermo interno
                  ? "Eros è gayo"
@@ -26,9 +28,11 @@ struct ContentView: View {
             Button("Increment Score") {
                 score += 1
             }
+            .buttonStyle(.borderedProminent)
             Button("Reset Score") {
                 score = 0
             }
+            .buttonStyle(.bordered)
             Text("Score: \(score)")
                 .font(.title2)
         }
