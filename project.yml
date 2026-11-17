@@ -5,8 +5,8 @@ options:
     iOS: "27.1"
 
 packages:
-  GameOrb:
-    path: GameCore/GameOrb
+  GameCore:
+    path: Packages/GameCore
 
 targets:
   HelloWorld:
@@ -14,9 +14,8 @@ targets:
     platform: iOS
     sources:
       - path: HelloWorld
-      - path: GameCore/GameOrbView.swift
     dependencies:
-      - package: GameOrb
+      - package: GameCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fpala.helloworld

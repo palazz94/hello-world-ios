@@ -1,5 +1,5 @@
 import SwiftUI
-import GameOrb
+import GameCore
 
 struct GameOrbView: View {
     let orb: GameOrb

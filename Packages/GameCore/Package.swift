@@ -4,26 +4,23 @@
 import PackageDescription
 
 let package = Package(
-    name: "GameOrb",
+    name: "GameCore",
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "GameOrb",
-            targets: ["GameOrb"]
+            name: "GameCore",
+            targets: ["GameCore"]
         ),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "GameOrb",
+            name: "GameCore",
             swiftSettings: [
                 .enableUpcomingFeature("ApproachableConcurrency"),
             ],
         ),
         .testTarget(
-            name: "GameOrbTests",
-            dependencies: ["GameOrb"],
+            name: "GameCoreTests",
+            dependencies: ["GameCore"],
             swiftSettings: [
                 .enableUpcomingFeature("ApproachableConcurrency"),
             ],

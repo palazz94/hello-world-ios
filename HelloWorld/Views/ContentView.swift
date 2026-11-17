@@ -1,6 +1,6 @@
 import SwiftUI
 import os
-import GameOrbView
+import GameCore
 
 private let logger = Logger(subsystem: "HelloWorld", category: "ContentView")
 
