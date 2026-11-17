@@ -4,7 +4,10 @@ import SwiftUI
 struct HelloWorldApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            GameView()
+                .ignoresSafeArea()
+                .defersSystemGestures(on: .bottom)
+                .persistentSystemOverlays(.hidden)
         }
     }
 }
