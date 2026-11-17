@@ -1,20 +1,20 @@
 import Foundation
 
-/// Pure board logic. No SpriteKit/UIKit, so it can be unit-tested in isolation.
-final class BoardEngine {
-    let cols: Int
-    let rows: Int
+/// Pure board logic. No SpriteKit/UIKit, so it builds and tests on Linux with `swift test`.
+public final class BoardEngine {
+    public let cols: Int
+    public let rows: Int
 
     /// `grid[row][col]`, row 0 is the bottom.
-    private(set) var grid: [[Orb?]]
+    public private(set) var grid: [[Orb?]]
 
     private var nextOrbID = 0
     /// Returns a value in `0..<upperBound`. Injectable for deterministic tests.
     private let randomIndex: (Int) -> Int
 
-    init(cols: Int = 6,
-         rows: Int = 5,
-         randomIndex: @escaping (Int) -> Int = { Int.random(in: 0..<$0) }) {
+    public init(cols: Int = 6,
+                rows: Int = 5,
+                randomIndex: @escaping (Int) -> Int = { Int.random(in: 0..<$0) }) {
         precondition(cols >= 3 && rows >= 3, "Board must be at least 3x3")
         self.cols = cols
         self.rows = rows
@@ -23,20 +23,37 @@ final class BoardEngine {
         generateBoard()
     }
 
+    /// Builds a fixed board; `layout` is written top row first, as it appears on screen. Matches are not removed.
+    public init(layout: [[OrbType]],
+                randomIndex: @escaping (Int) -> Int = { Int.random(in: 0..<$0) }) {
+        precondition(layout.count >= 3, "Board must be at least 3x3")
+        let width = layout[0].count
+        precondition(width >= 3 && layout.allSatisfy { $0.count == width }, "Layout must be a rectangle, at least 3x3")
+        self.cols = width
+        self.rows = layout.count
+        self.randomIndex = randomIndex
+        self.grid = Array(repeating: Array(repeating: nil, count: width), count: layout.count)
+        for (rowFromBottom, types) in layout.reversed().enumerated() {
+            for (col, type) in types.enumerated() {
+                grid[rowFromBottom][col] = makeOrb(type)
+            }
+        }
+    }
+
     // MARK: - Access
 
-    func isValid(_ pos: GridPosition) -> Bool {
+    public func isValid(_ pos: GridPosition) -> Bool {
         (0..<cols).contains(pos.col) && (0..<rows).contains(pos.row)
     }
 
-    func orb(at pos: GridPosition) -> Orb? {
+    public func orb(at pos: GridPosition) -> Orb? {
         isValid(pos) ? grid[pos.row][pos.col] : nil
     }
 
     // MARK: - Generation
 
     /// Fills the board guaranteeing no pre-existing 3+ lines.
-    func generateBoard() {
+    public func generateBoard() {
         for row in 0..<rows {
             for col in 0..<cols {
                 var excluded = Set<OrbType>()
@@ -58,7 +75,7 @@ final class BoardEngine {
 
     /// Swaps two orbs if both positions are valid and adjacent (8-neighbourhood).
     @discardableResult
-    func swap(_ a: GridPosition, _ b: GridPosition) -> Bool {
+    public func swap(_ a: GridPosition, _ b: GridPosition) -> Bool {
         guard isValid(a), isValid(b), a.isAdjacent(to: b) else { return false }
         let tmp = grid[a.row][a.col]
         grid[a.row][a.col] = grid[b.row][b.col]
@@ -69,7 +86,7 @@ final class BoardEngine {
     // MARK: - Matching
 
     /// Returns combo clusters ordered bottom-to-top, left-to-right (by each cluster's lowest-leftmost orb).
-    func findMatches() -> [MatchCluster] {
+    public func findMatches() -> [MatchCluster] {
         var marked = Array(repeating: Array(repeating: false, count: cols), count: rows)
 
         for row in 0..<rows {
@@ -136,7 +153,7 @@ final class BoardEngine {
         return clusters
     }
 
-    func removeOrbs(in clusters: [MatchCluster]) {
+    public func removeOrbs(in clusters: [MatchCluster]) {
         for cluster in clusters {
             for pos in cluster.positions where isValid(pos) {
                 grid[pos.row][pos.col] = nil
@@ -147,7 +164,7 @@ final class BoardEngine {
     // MARK: - Gravity & Skyfall
 
     /// Drops existing orbs into empty cells and fills the remaining top cells with new random orbs.
-    func applyGravity() -> GravityResult {
+    public func applyGravity() -> GravityResult {
         var falls: [OrbFall] = []
         var spawns: [OrbSpawn] = []
 

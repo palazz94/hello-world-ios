@@ -4,12 +4,18 @@ options:
   deploymentTarget:
     iOS: "27.1"
 
+packages:
+  PADRoguelikeCore:
+    path: Packages/PADRoguelikeCore
+
 targets:
   HelloWorld:
     type: application
     platform: iOS
     sources:
       - path: HelloWorld
+    dependencies:
+      - package: PADRoguelikeCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fpala.helloworld

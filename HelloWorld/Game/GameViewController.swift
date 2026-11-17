@@ -1,3 +1,4 @@
+import PADRoguelikeCore
 import SpriteKit
 import SwiftUI
 import UIKit
@@ -12,7 +13,10 @@ final class GameViewController: UIViewController {
     }
 
     private let engine = BoardEngine(cols: 6, rows: 5)
-    private lazy var scene = GameScene(engine: engine)
+    private lazy var scene: GameScene = TestBattleScene(
+        board: engine,
+        battle: BattleEngine(player: .test, enemies: Enemy.testRoster, mode: .simultaneous)
+    )
 
     private var appliedBounds: CGRect = .null
     private var appliedInsets: UIEdgeInsets = .zero
@@ -78,7 +82,8 @@ final class GameViewController: UIViewController {
                             y: safeArea.bottom + Metrics.bottomMargin),
             cellSize: cell,
             timerBarHeight: Metrics.timerBarHeight,
-            timerBarGap: Metrics.timerBarGap
+            timerBarGap: Metrics.timerBarGap,
+            topInset: safeArea.top
         )
     }
 }

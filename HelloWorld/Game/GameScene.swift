@@ -1,4 +1,5 @@
 import CoreHaptics
+import PADRoguelikeCore
 import SpriteKit
 import UIKit
 
@@ -8,10 +9,13 @@ struct BoardLayout: Equatable {
     var cellSize: CGFloat
     var timerBarHeight: CGFloat
     var timerBarGap: CGFloat
+    /// Safe-area inset at the top of the scene.
+    var topInset: CGFloat
 }
 
+/// Board scene: grid rendering, drag input and combo resolution. Subclass and override the hooks to add game modes.
 @MainActor
-final class GameScene: SKScene {
+class GameScene: SKScene {
 
     enum State { case idle, dragging, resolving }
 
@@ -44,6 +48,8 @@ final class GameScene: SKScene {
 
     private let engine: BoardEngine
     private(set) var state: State = .idle
+    /// When true, new drags are ignored (e.g. during enemy turns or game over).
+    var isInputLocked = false
 
     private var layout: BoardLayout?
     private var pendingLayout: BoardLayout?
@@ -189,6 +195,25 @@ final class GameScene: SKScene {
 
         comboLabel.fontSize = cell * 0.55
         comboLabel.position = CGPoint(x: timerTrack.position.x, y: barY + barHeight / 2 + cell * 0.5)
+
+        boardLayoutDidChange(layout,
+                             boardFrame: CGRect(origin: layout.origin, size: boardSize),
+                             hudTop: comboLabel.position.y + cell * 0.5)
+    }
+
+    // MARK: - Subclass hooks
+
+    /// Called after every layout rebuild. `hudTop` is the first free y above the timer bar and combo label.
+    func boardLayoutDidChange(_ layout: BoardLayout, boardFrame: CGRect, hudTop: CGFloat) {}
+
+    /// Called once per player move, after all cascades, with every combo in pop order.
+    func boardDidFinishTurn(_ clusters: [MatchCluster]) {}
+
+    /// Regenerates a fresh board without matches. Ignored unless idle.
+    func resetBoard() {
+        guard state == .idle else { return }
+        engine.generateBoard()
+        rebuildBoard()
     }
 
     // MARK: - Geometry
@@ -224,7 +249,8 @@ final class GameScene: SKScene {
     // MARK: - Touch input
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard state == .idle, activeTouch == nil, layout != nil, let touch = touches.first else { return }
+        guard state == .idle, !isInputLocked, activeTouch == nil, layout != nil,
+              let touch = touches.first else { return }
         let point = touch.location(in: orbLayer)
         guard let pos = gridPosition(at: point),
               let orb = engine.orb(at: pos),
@@ -359,11 +385,13 @@ final class GameScene: SKScene {
 
     private func resolveBoard() async {
         comboCount = 0
+        var turnClusters: [MatchCluster] = []
         await wait(Timing.settle)
 
         while true {
             let clusters = engine.findMatches()
             guard !clusters.isEmpty else { break }
+            turnClusters += clusters
 
             for cluster in clusters {
                 comboCount += 1
@@ -380,6 +408,7 @@ final class GameScene: SKScene {
 
         if comboCount > 0 { fadeOutCombo() }
         enterIdle()
+        boardDidFinishTurn(turnClusters)
     }
 
     private func enterIdle() {
@@ -391,7 +420,7 @@ final class GameScene: SKScene {
     }
 
     /// Scene-clock wait so it pauses along with the scene.
-    private func wait(_ duration: TimeInterval) async {
+    func wait(_ duration: TimeInterval) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             run(.wait(forDuration: duration)) { continuation.resume() }
         }
@@ -526,7 +555,7 @@ final class GameScene: SKScene {
 
 // MARK: - Placeholder artwork
 
-private extension OrbType {
+extension OrbType {
     var baseColor: UIColor {
         switch self {
         case .fire: UIColor(red: 0.93, green: 0.26, blue: 0.21, alpha: 1)
