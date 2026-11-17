@@ -1,5 +1,6 @@
 import SwiftUI
 import os
+import GameOrbView
 
 private let logger = Logger(subsystem: "HelloWorld", category: "ContentView")
 
@@ -8,6 +9,7 @@ struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var hinge: DeviceHinge?
     @State private var score: Int = 0
+    @State private var playerOrbs: [GameOrb] = [GameOrb(type: "fire", level: 1), GameOrb(type: "water", level: 1), GameOrb(type: "nature", level: 1)]
 
     var body: some View {
         let _ = logger.notice("ContentView body called")
@@ -29,16 +31,22 @@ struct ContentView: View {
                     .font(.title2)
             }
             Button("Increment Score") {
-                score += 1
+                playerOrbs[0].level += 1
             }
             .buttonStyle(.borderedProminent)
             Button("Reset Score") {
-                score = 0
+                playerOrbs[0].level = 1
             }
-            .buttonStyle(.bordered)
-            Text("Score: \(score)")
-                .font(.title2)
+            .buttonStyle(.borderedProminent)
         }
+
+        HStack(spacing: 16) {
+            ForEach(playerOrbs.indices, id: \.self) { index in
+                GameOrbView(orb: playerOrbs[index])
+            }
+        }
+        .padding(.vertical, 8)
+
         .padding()
         .onHingeChange { _, newContext in
             hinge = newContext.hinge

@@ -4,12 +4,19 @@ options:
   deploymentTarget:
     iOS: "27.1"
 
+packages:
+  GameOrb:
+    path: GameCore/GameOrb
+
 targets:
   HelloWorld:
     type: application
     platform: iOS
     sources:
       - path: HelloWorld
+      - path: GameCore/GameOrbView.swift
+    dependencies:
+      - package: GameOrb
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fpala.helloworld
