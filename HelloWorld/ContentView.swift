@@ -4,6 +4,7 @@ struct ContentView: View {
     // iPhone Duo: outer display is compact width, inner display is regular width.
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var hinge: DeviceHinge?
+    @State private var score: Int = 0
 
     var body: some View {
         VStack(spacing: 16) {
@@ -22,6 +23,14 @@ struct ContentView: View {
                 Text("Hinge non disponibile")
                     .font(.title2)
             }
+            Button("Increment Score") {
+                score += 1
+            }
+            Button("Reset Score") {
+                score = 0
+            }
+            Text("Score: \(score)")
+                .font(.title2)
         }
         .padding()
         .onHingeChange { _, newContext in
