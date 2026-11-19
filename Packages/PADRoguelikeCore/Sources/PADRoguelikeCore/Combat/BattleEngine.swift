@@ -36,9 +36,10 @@ public struct CombatRules: Sendable {
 public struct PlayerAttack: Sendable {
     public let element: Element
     public let targetIndex: Int
-    /// Raw damage before clamping to the enemy's remaining HP.
+    /// Raw damage before clamping to the enemy's remaining HP; HP healed when `block == .absorbed`.
     public let damage: Int
     public let defeatedTarget: Bool
+    public let block: HitBlock?
 }
 
 public struct EnemyAttack: Sendable {
@@ -55,6 +56,8 @@ public struct TurnReport: Sendable {
     public let playerAttacks: [PlayerAttack]
     public let healed: Int
     public let shieldGained: Int
+    /// HP lost to own relics/talents (never lethal).
+    public let selfDamage: Int
     public let enemyAttacks: [EnemyAttack]
     public let outcome: BattleOutcome
     /// Every modifier that changed a value this turn, in application order.
@@ -131,50 +134,61 @@ public final class BattleEngine {
     /// Applies one player move. `clusters` are all combos of the move, cascades included.
     public func resolveTurn(clusters: [MatchCluster]) -> TurnReport {
         guard outcome == .ongoing else {
-            return TurnReport(turn: turn, comboCount: 0, playerAttacks: [], healed: 0, shieldGained: 0,
+            return TurnReport(turn: turn, comboCount: 0, playerAttacks: [], healed: 0, shieldGained: 0, selfDamage: 0,
                               enemyAttacks: [], outcome: outcome, appliedModifiers: [])
         }
         turn += 1
         let resolver = self.resolver
         let activeAtStart = Set(activeEnemyIndices)
+        let context = TurnContext(clusters: clusters, hpFraction: Double(player.currentHP) / Double(player.maxHP))
         var applied: [AppliedModifier] = []
         var healed = 0
         var shieldGained = 0
+        var selfDamage = 0
 
         let startShield = resolver.turnStartShield()
         let startHeal = resolver.turnStartHeal()
-        applied += startShield.applied + startHeal.applied
+        let startLoss = resolver.turnStartHPLoss()
+        applied += startShield.applied + startHeal.applied + startLoss.applied
         shieldGained += startShield.value
         healed += player.heal(startHeal.value)
+        selfDamage += player.drain(startLoss.value)
 
         var attacks: [PlayerAttack] = []
         for cluster in clusters {
             if let element = cluster.type.element {
                 guard let target = targetIndex else { continue }
                 let hit = resolver.damage(attack: player.attack[element] ?? 0, element: element, cluster: cluster,
-                                          comboCount: clusters.count, defender: enemies[target].element)
+                                          turn: context, defender: enemies[target].element)
                 applied += hit.applied
-                enemies[target].takeDamage(hit.value)
-                attacks.append(PlayerAttack(element: element, targetIndex: target, damage: hit.value,
-                                            defeatedTarget: enemies[target].isDefeated))
+                let result = enemies[target].receiveHit(hit.value, element: element, comboCount: clusters.count)
+                attacks.append(PlayerAttack(element: element, targetIndex: target, damage: result.amount,
+                                            defeatedTarget: enemies[target].isDefeated, block: result.block))
             } else {
-                let heal = resolver.heal(recovery: player.recovery, cluster: cluster, comboCount: clusters.count)
+                let heal = resolver.heal(recovery: player.recovery, cluster: cluster, turn: context)
                 applied += heal.applied
                 healed += player.heal(heal.value)
             }
         }
 
-        let comboShield = resolver.comboShield(comboCount: clusters.count)
-        applied += comboShield.applied
-        shieldGained += comboShield.value
+        let moveShield = resolver.moveShield(context)
+        let moveHeal = resolver.moveHeal(context)
+        let moveLoss = resolver.moveSelfDamage(context)
+        applied += moveShield.applied + moveHeal.applied + moveLoss.applied
+        shieldGained += moveShield.value
+        healed += player.heal(moveHeal.value)
+        selfDamage += player.drain(moveLoss.value)
         shield += shieldGained
+
+        for index in enemies.indices { _ = enemies[index].regenerate() }
 
         var enemyAttacks: [EnemyAttack] = []
         // Enemies that entered the field during this turn wait until the next one.
         for index in activeEnemyIndices where activeAtStart.contains(index) {
             guard outcome == .ongoing else { break }
             guard enemies[index].advanceTurn() else { continue }
-            let incoming = resolver.incomingDamage(enemies[index].attackPower)
+            let incoming = resolver.incomingDamage(enemies[index].currentAttack)
+            enemies[index].didAttack()
             applied += incoming.applied
             let blocked = min(shield, incoming.value)
             shield -= blocked
@@ -186,8 +200,8 @@ public final class BattleEngine {
         for index in abilities.indices { abilities[index].tick() }
 
         return TurnReport(turn: turn, comboCount: clusters.count, playerAttacks: attacks, healed: healed,
-                          shieldGained: shieldGained, enemyAttacks: enemyAttacks, outcome: outcome,
-                          appliedModifiers: applied)
+                          shieldGained: shieldGained, selfDamage: selfDamage, enemyAttacks: enemyAttacks,
+                          outcome: outcome, appliedModifiers: applied)
     }
 
     /// Uses an ability before the next move. `board` is required only for board effects.
@@ -212,9 +226,9 @@ public final class BattleEngine {
                     let raw = Double(player.attack[element] ?? 0) * multiplier
                         * element.multiplier(against: enemies[target].element)
                     let damage = Int(raw.rounded())
-                    enemies[target].takeDamage(damage)
-                    report.attacks.append(PlayerAttack(element: element, targetIndex: target, damage: damage,
-                                                       defeatedTarget: enemies[target].isDefeated))
+                    let result = enemies[target].receiveHit(damage, element: element, comboCount: nil)
+                    report.attacks.append(PlayerAttack(element: element, targetIndex: target, damage: result.amount,
+                                                       defeatedTarget: enemies[target].isDefeated, block: result.block))
                 }
             case let .healPercent(fraction):
                 report.healed += player.heal(Int((Double(player.maxHP) * fraction).rounded()))

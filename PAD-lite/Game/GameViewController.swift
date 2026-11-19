@@ -24,7 +24,7 @@ final class GameViewController: UIViewController {
         let board = BoardEngine(cols: 6, rows: 5)
         engine = board
         scene = TestBattleScene(board: board, battle: battle)
-        scene.moveDuration = settings.moveDuration
+        scene.moveDuration = max(2, settings.moveDuration + battle.resolver.moveTimeBonus())
         scene.hapticsEnabled = settings.hapticsEnabled
         scene.onBattleEnd = onBattleEnd
         super.init(nibName: nil, bundle: nil)

@@ -1,6 +1,8 @@
 # Guida al codice (per chi non conosce Swift)
 
-Questo progetto è un piccolo gioco iOS in stile **Puzzle & Dragons**: trascini una sfera ("orb") sulla griglia, la scambi con le vicine, e quando allinei 3+ sfere dello stesso colore fai una **combo**. Le combo infliggono danni ai nemici; se non li sconfiggi, loro ti attaccano.
+**PAD-lite** è un gioco iOS che unisce due idee:
+- il **puzzle** di *Puzzle & Dragons*: trascini una sfera ("orb") sulla griglia, la scambi con le vicine e quando allinei 3+ sfere dello stesso colore fai una **combo**, che infligge danni ai nemici;
+- la **run roguelike** di *Slay the Spire*: scegli un eroe e risali una **mappa a percorsi ramificati** (combattimenti, eventi, mercanti, accampamenti, tesori) fino al **boss**, raccogliendo **reliquie** che cambiano il modo di giocare.
 
 ---
 
@@ -11,53 +13,54 @@ hello-world-ios/
 ├── project.yml                     ← ricetta per generare il progetto Xcode (tool "XcodeGen")
 ├── builder.json                    ← impostazioni della CI (nome progetto, scheme, bundle ID)
 ├── .github/workflows/              ← CI su GitHub: compila l'app su un Mac remoto
-├── PAD-lite/                       ← L'APP iOS (grafica, tocchi, animazioni, menu)
-│   ├── PadLiteApp.swift            ← punto di ingresso: mostra menu, schermata run o battaglia
+├── PAD-lite/                       ← L'APP iOS (grafica, tocchi, animazioni, schermate)
+│   ├── PadLiteApp.swift            ← punto di ingresso: mostra menu, run o battaglia
 │   ├── ContentView.swift           ← schermata di prova vecchia, NON usata dal gioco
 │   ├── Assets.xcassets/            ← immagini dell'app (per ora solo l'icona)
-│   │   └── AppIcon.appiconset/     ← metti qui AppIcon.png (1024×1024)
-│   ├── Menu/                       ← schermate del menu (SwiftUI)
+│   ├── Menu/
 │   │   ├── GameProgress.swift      ← opzioni + run in corso (salvata automaticamente)
 │   │   ├── MainMenuView.swift      ← menu principale: Continua / Nuova run / Opzioni
 │   │   └── OptionsView.swift       ← tempo per mossa, vibrazione
 │   ├── Run/                        ← schermate della run (SwiftUI)
-│   │   ├── CharacterSelectView.swift ← scelta del personaggio
-│   │   ├── RunView.swift           ← stato della run, scelta nodo, anteprima nemici, ricompense, fine run
-│   │   └── RunTexts.swift          ← testi in italiano per nodi, reliquie, bonus, abilità
-│   └── Game/
+│   │   ├── CharacterSelectView.swift ← scelta dell'eroe (schede con talenti e abilità)
+│   │   ├── RunView.swift           ← barra di stato + mappa + pannelli delle stanze
+│   │   ├── MapView.swift           ← la mappa disegnata stile Slay the Spire
+│   │   ├── RunVisuals.swift        ← "mattoncini grafici": tema, ritratti, icone, barre, pulsanti
+│   │   └── RunTexts.swift          ← testi italiani di bonus, condizioni, tratti, stanze
+│   └── Game/                       ← la battaglia (SpriteKit)
 │       ├── GameViewController.swift ← crea la "tela" di gioco e calcola dove disegnare la griglia
-│       ├── GameScene.swift          ← disegna la griglia, gestisce il trascinamento e le combo
-│       ├── OrbArtwork.swift         ← colori e disegno delle sfere (grafica provvisoria)
-│       ├── ComboHaptics.swift       ← vibrazione a ogni combo (più forte con più combo)
+│       ├── GameScene.swift          ← griglia, trascinamento, combo
+│       ├── OrbArtwork.swift         ← disegno delle sfere "a gemma"
+│       ├── EnemyArtwork.swift       ← disegno dei mostri + sfondo della battaglia
+│       ├── ComboHaptics.swift       ← vibrazione a ogni combo
 │       └── Battle/
-│           ├── TestBattleScene.swift ← aggiunge nemici, abilità, barra HP, turni, vittoria/sconfitta
-│           └── BattleNodes.swift     ← "pezzi grafici": barra HP, nemico, pulsante abilità, testo fluttuante
+│           ├── TestBattleScene.swift ← nemici, abilità, barra HP, turni, vittoria/sconfitta
+│           └── BattleNodes.swift     ← barra HP, nemico, pulsante abilità, testo fluttuante
 └── Packages/PADRoguelikeCore/      ← LA LOGICA PURA (regole, niente grafica)
-    ├── Package.swift               ← configurazione della libreria
     ├── Sources/PADRoguelikeCore/
     │   ├── OrbModel.swift          ← tipi base: sfera, posizione, combo
-    │   ├── BoardEngine.swift       ← regole della griglia: genera, scambia, trova combo, gravità, converti sfere
+    │   ├── BoardEngine.swift       ← regole della griglia
+    │   ├── Combat/
+    │   │   ├── Element.swift       ← elementi e vantaggi (fuoco batte legno, ecc.)
+    │   │   ├── Player.swift        ← il giocatore in battaglia (HP, attacco, cura)
+    │   │   ├── Enemy.swift         ← i nemici e i loro tratti speciali
+    │   │   └── BattleEngine.swift  ← regole del combattimento a turni
     │   ├── Modifiers/
-    │   │   ├── Modifier.swift      ← i "mattoncini" di bonus (es. "fuoco ×1.5", "scudo a inizio turno")
-    │   │   └── ModifierResolver.swift ← la "calcolatrice" che applica i bonus a danno/cura/difesa
-    │   ├── Abilities/
-    │   │   └── Ability.swift       ← abilità attive (cooldown, cariche, costo HP, effetti)
+    │   │   ├── Modifier.swift      ← i bonus/malus tipizzati e le loro condizioni
+    │   │   └── ModifierResolver.swift ← la "calcolatrice" che li applica
+    │   ├── Abilities/Ability.swift ← abilità attive (cooldown, cariche, costo HP, effetti)
     │   ├── Characters/
-    │   │   ├── Character.swift     ← il personaggio della run: statistiche, talenti passivi, abilità
-    │   │   └── CharacterCatalog.swift ← i 5 personaggi tra cui scegliere
-    │   ├── Relics/
-    │   │   └── Relic.swift         ← reliquie e il loro catalogo
-    │   ├── Run/
-    │   │   ├── SeededRandom.swift  ← generatore casuale "riproducibile" (stesso seme = stessa run)
-    │   │   ├── GameCatalog.swift   ← catalogo di tutto (reliquie, personaggi, nemici)
-    │   │   ├── RunState.swift      ← lo stato salvabile della run
-    │   │   ├── RunRules.swift      ← le regole della run (mappa, difficoltà, ricompense)
-    │   │   └── RunEngine.swift     ← il "motore" che fa avanzare la run
-    │   └── Combat/
-    │       ├── Element.swift       ← elementi e vantaggi (fuoco batte legno, ecc.)
-    │       ├── Player.swift        ← il giocatore (HP, attacco, cura)
-    │       ├── Enemy.swift         ← i nemici (HP, attacco, conto alla rovescia)
-    │       └── BattleEngine.swift  ← regole del combattimento a turni
+    │   │   ├── Character.swift     ← definizione dell'eroe, talenti passivi
+    │   │   └── CharacterCatalog.swift ← i 6 eroi
+    │   ├── Relics/Relic.swift      ← le 24 reliquie
+    │   └── Run/
+    │       ├── RunMap.swift        ← la mappa a nodi
+    │       ├── RunEvent.swift      ← gli eventi testuali con scelte
+    │       ├── RunState.swift      ← lo stato salvabile della run
+    │       ├── RunRules.swift      ← regole: generazione mappa, difficoltà, ricompense, negozio
+    │       ├── RunEngine.swift     ← il "motore" che fa avanzare la run
+    │       ├── GameCatalog.swift   ← catalogo: reliquie, eroi, nemici, eventi
+    │       └── SeededRandom.swift  ← casualità riproducibile (stesso seme = stessa run)
     └── Tests/                      ← test automatici della logica
 ```
 
@@ -66,40 +69,30 @@ hello-world-ios/
 ```mermaid
 flowchart TB
     subgraph APP["App iOS (PAD-lite/) — solo su Mac/iPhone"]
-        A[PadLiteApp / RootView] --> M[Menu SwiftUI]
-        M --> P[GameProgress]
-        A --> RV[RunView]
-        RV --> P
-        P -- "usa" --> R
-        A --> B[GameViewController]
-        B --> C[TestBattleScene]
-        C -- "eredita da" --> D[GameScene]
-        C --> E[BattleNodes: HPBar, EnemyNode]
+        A[PadLiteApp / RootView] --> MM[Menu]
+        A --> RV[RunView: mappa + stanze]
+        A --> GV[Battaglia: GameViewController]
+        GV --> TB[TestBattleScene]
+        TB -- "eredita da" --> GS[GameScene]
+        RV --> GP[GameProgress]
+        MM --> GP
     end
     subgraph CORE["Logica (PADRoguelikeCore) — gira anche su Linux"]
-        F[BoardEngine]
-        G[BattleEngine]
-        H[Player / Enemy / Element]
-        R[RunEngine + RunRules]
+        RE[RunEngine + RunRules]
+        BE[BattleEngine]
+        BO[BoardEngine]
         MR[ModifierResolver]
-        PC[Personaggio / Abilità]
-        RL[Reliquie]
+        CAT[Catalogo: eroi, reliquie, nemici, eventi]
     end
-    R -- "crea battaglie" --> G
-    R --> PC
-    R --> RL
-    RL -- "modificatori" --> MR
-    PC -- "talenti = modificatori" --> MR
-    G -- "calcola danni/cure con" --> MR
-    G -- "abilità sulla griglia" --> F
-    D -- "chiede: scambia, trova combo, gravità" --> F
-    C -- "chiede: risolvi il turno" --> G
-    G --> H
-    M -- "elenco livelli" --> L
-    P -- "giocatore con talenti" --> L
+    GP -- "usa" --> RE
+    RE -- "crea battaglie" --> BE
+    RE --> CAT
+    BE -- "calcola danni/cure con" --> MR
+    GS -- "scambia, trova combo, gravità" --> BO
+    TB -- "risolvi turno / usa abilità" --> BE
 ```
 
-- **Core** = il "cervello". Sa le regole, non sa disegnare. Si può testare su Linux con `swift test`.
+- **Core** = il "cervello". Sa le regole, non sa disegnare. Si testa su Linux con `swift test`.
 - **App** = la "faccia". Disegna, anima, legge le dita. Chiede al core cosa succede.
 
 Analogia: il core è l'arbitro con il regolamento, l'app è la telecamera che riprende la partita.
@@ -119,7 +112,7 @@ Analogia: il core è l'arbitro con il regolamento, l'app è la telecamera che ri
 | `func f(a: Int) -> Bool` | funzione che riceve un Int e ritorna un Bool | `def f(a): ...` |
 | `struct` | oggetto "valore": copiato quando lo passi | come un record/dataclass |
 | `class` | oggetto "riferimento": condiviso | classe normale Java/JS |
-| `enum` | elenco di casi fissi | enum Java |
+| `enum` | elenco di casi fissi (possono portare dati) | enum Java |
 | `extension Tipo { ... }` | aggiunge metodi a un tipo già esistente | "monkey patching" pulito |
 | `public` / `private` | visibile fuori dalla libreria / solo in questo file-tipo | idem Java |
 | `private(set) var` | tutti possono leggere, solo il tipo può modificare | getter pubblico, setter privato |
@@ -136,457 +129,293 @@ guard state == .idle else { return }   // se non sono a riposo, non faccio nient
 ```
 
 **`if let x = qualcosa`** — "se `qualcosa` non è nil, chiamalo `x` e usalo".
-```swift
-if let orb = engine.orb(at: pos) { ... }  // se in quella cella c'è una sfera...
-```
 
 **`switch`** — come un if/else multiplo, deve coprire tutti i casi.
-```swift
-switch self {
-case .fire: "Fuoco"
-case .water: "Acqua"
-...
-}
-```
 
-**Closure `{ ... }`** — funzione anonima (lambda). `$0` è il primo parametro.
-```swift
-enemies.allSatisfy { $0.isDefeated }  // "tutti i nemici sono sconfitti?"
-```
+**`case let .x(a, b) where condizione`** — in uno `switch`: "se è il caso `x`, estrai `a` e `b`, ma solo se la condizione è vera". Usatissimo nel `ModifierResolver`.
 
-**`.fire`, `.idle`** — il punto iniziale è una scorciatoia: Swift capisce il tipo dal contesto (`OrbType.fire`).
+**Enum con dati** — un caso può portare valori, es. `.turnDamage(.combosAtLeast(5), factor: 1.4)` = "danno ×1.4 se fai almeno 5 combo".
 
-**`async` / `await`** — codice che "aspetta" senza bloccare l'app (serve per le animazioni in sequenza).
-```swift
-await wait(0.25)   // pausa di 0.25 secondi, poi continua
-```
+**Closure `{ ... }`** — funzione anonima (lambda). `$0` è il primo parametro: `enemies.allSatisfy { $0.isDefeated }`.
 
-**`Task { ... }`** — fa partire un pezzo di codice asincrono.
+**`.fire`, `.idle`** — il punto iniziale è una scorciatoia: Swift capisce il tipo dal contesto.
 
-**`[weak self]`** — evita che l'oggetto resti in memoria per sempre a causa della closure. Puoi ignorarlo concettualmente.
-
-**`// MARK: - Qualcosa`** — solo un segnalibro per Xcode, non fa nulla.
-
-**`///`** — commento di documentazione.
-
-**`@MainActor`** — "questo codice gira sul thread principale" (obbligatorio per la grafica).
-
-**`precondition(cond, "msg")`** — se `cond` è falsa, il programma si blocca con quel messaggio (controllo di sicurezza).
-
-**`Sendable`, `Hashable`, `Equatable`, `Identifiable`, `CaseIterable`** — "etichette" (*protocolli*) che dicono cosa sa fare un tipo:
-- `Equatable`: si può confrontare con `==`
-- `Hashable`: si può usare come chiave di dizionario / in un `Set`
-- `Identifiable`: ha un `id`
-- `CaseIterable`: per un enum, dà `allCases` (lista di tutti i casi)
-- `Sendable`: sicuro da passare tra thread
-- `Codable`: si può trasformare in JSON e ricostruire (serve per i salvataggi)
+**`async` / `await` / `Task { }`** — codice che "aspetta" senza bloccare l'app (animazioni in sequenza).
 
 **`throws(Errore)` / `try`** — una funzione che può fallire con un errore preciso; chi la chiama scrive `try`.
-```swift
-try battle.useAbility(0)   // può fallire con AbilityError.onCooldown, ecc.
-```
 
-**`protocol`** — un "contratto": elenco di funzioni che un tipo promette di avere (come un'interfaccia Java). Es. `RunRules`.
+**`protocol`** — un "contratto" (come un'interfaccia Java). Es. `RunRules`.
 
-**`case let .x(a, b) where condizione`** — in uno `switch`, "se è il caso `x`, estrai i valori `a` e `b`, ma solo se la condizione è vera".
+**`@MainActor`** — "gira sul thread principale" (obbligatorio per la grafica). **`precondition`** — controllo di sicurezza che blocca il programma se falso. **`// MARK:`** — segnalibro per Xcode. **`[weak self]`** — evita perdite di memoria nelle closure.
 
-### SwiftUI (usato per i menu)
+**Protocolli comuni**: `Equatable` (confrontabile con `==`), `Hashable` (usabile in `Set`/dizionari), `Identifiable` (ha un `id`), `CaseIterable` (`allCases`), `Sendable` (sicuro tra thread), `Codable` (salvabile in JSON).
+
+### SwiftUI (usato per menu, mappa e stanze)
 
 SwiftUI descrive l'interfaccia come "cosa voglio vedere" e la ridisegna da sola quando i dati cambiano.
 
-- **`struct X: View { var body: some View { ... } }`**: una schermata o un pezzo di schermata. `body` dice cosa mostrare.
-- **`VStack` / `HStack`**: impila elementi in verticale / orizzontale. **`List`** / **`Form`**: elenchi stile Impostazioni.
-- **`Text`, `Button`, `Toggle`, `Stepper`, `Image(systemName:)`**: testo, pulsante, interruttore, +/-, icona di sistema.
-- **`NavigationStack` + `NavigationLink`**: navigazione a pagine con il tasto "indietro" automatico.
-- **`.font(...)`, `.padding()`, `.disabled(...)`**: "modificatori" che cambiano l'aspetto o il comportamento.
-- **`@State`**: una variabile della schermata; quando cambia, la schermata si ridisegna.
-- **`@Observable class`**: un oggetto di dati "osservato": se cambia, le schermate che lo usano si aggiornano.
-- **`.environment(obj)` / `@Environment(Tipo.self)`**: passa un oggetto a tutte le schermate "figlie" senza doverlo passare a mano.
-- **`@Bindable` e `$valore`**: collegamento a due vie (es. un `Toggle` che legge **e** scrive un'opzione).
+- **`struct X: View { var body: some View { ... } }`**: una schermata o un pezzo. `body` dice cosa mostrare.
+- **`VStack` / `HStack` / `ZStack`**: impila in verticale / orizzontale / uno sopra l'altro.
+- **`ScrollView`**, **`Canvas`** (disegno libero), **`GeometryReader`** (dimensioni disponibili).
+- **`.font(...)`, `.padding()`, `.background(...)`, `.shadow(...)`**: "modificatori".
+- **`@State`**: variabile della schermata; quando cambia, si ridisegna. **`withAnimation`**: anima il cambiamento.
+- **`@Observable class`** + **`.environment(obj)` / `@Environment(Tipo.self)`**: dati condivisi tra schermate.
+- **`ButtonStyle`**: lo "stile" riutilizzabile di un pulsante (es. `PrimaryButtonStyle`).
 
 ---
 
-## 3. Il Core (la logica) file per file
+## 3. Il Core (la logica)
 
 ### 3.1 `OrbModel.swift` — i mattoncini
 
-- **`OrbType`**: i 6 colori di sfera: `fire, water, wood, light, dark, heal`.
-- **`GridPosition`**: una cella `(col, row)`. **Attenzione: `row 0` è in BASSO** (come in matematica, non come in Excel).
-  - `isAdjacent(to:)`: vero se l'altra cella è una delle 8 intorno (diagonali comprese).
-- **`Orb`**: una sfera = `id` univoco + `type`. L'id serve all'app per sapere quale disegno muovere.
-- **`MatchCluster`**: una **combo** = tipo + lista di posizioni + id delle sfere coinvolte.
-- **`OrbFall`**: "la sfera X cade da qui a lì".
-- **`OrbSpawn`**: "nasce una sfera nuova in questa cella" (`stackIndex` = quanto in alto partire per l'animazione).
-- **`GravityResult`**: elenco di cadute + nascite dopo una combo.
+- **`OrbType`**: i 6 tipi di sfera: `fire, water, wood, light, dark, heal` (cuore = cura).
+- **`GridPosition`**: una cella `(col, row)`. **`row 0` è in BASSO**.
+- **`Orb`**: `id` univoco + `type`. L'id serve all'app per sapere quale disegno muovere.
+- **`MatchCluster`**: una **combo** = tipo + posizioni + id delle sfere. `count` = quante sfere.
+- **`OrbFall` / `OrbSpawn` / `GravityResult`**: cadute e nuove sfere dopo una combo. **`OrbConversion`**: una sfera trasformata da un'abilità.
 
-### 3.2 `BoardEngine.swift` — le regole della griglia
-
-È una `class` che contiene `grid`, cioè una matrice `grid[riga][colonna]` di `Orb?` (sfera o vuoto).
+### 3.2 `BoardEngine.swift` — la griglia
 
 | Metodo | Cosa fa |
 |---|---|
-| `init(cols:rows:)` | Crea una griglia (default 6×5) e la riempie a caso. |
-| `init(layout:)` | Crea una griglia fissa (usato nei test). |
-| `generateBoard()` | Riempie la griglia **evitando** che ci siano già 3 in fila all'inizio: per ogni cella esclude il colore che formerebbe un tris con le due a sinistra o le due sotto. |
-| `swap(a, b)` | Scambia due sfere vicine. Ritorna `false` se non valido. |
-| `findMatches()` | Trova tutte le combo (vedi sotto). |
-| `removeOrbs(in:)` | Svuota le celle delle combo. |
-| `applyGravity()` | Fa cadere le sfere nei buchi e ne crea di nuove in cima ("skyfall"). |
-| `convertOrbs(from:to:)` | Trasforma tutte le sfere di un tipo in un altro (usato dalle abilità). Le sfere nuove hanno id nuovi. |
+| `init(cols:rows:)` | Griglia 6×5 riempita a caso **senza** tris già pronti. |
+| `swap(a, b)` | Scambia due sfere vicine (anche in diagonale). |
+| `findMatches()` | Trova le combo: righe e colonne di 3+, poi unisce quelle che si toccano (una L o una T = 1 combo). |
+| `removeOrbs(in:)` / `applyGravity()` | Svuota, fa cadere, crea sfere nuove in cima. |
+| `convertOrbs(from:to:)` | Trasforma un tipo di sfera in un altro (abilità). |
 
-**Come funziona `findMatches()`** (in 3 passaggi):
-1. Scorre ogni **riga**: se trova 3+ dello stesso tipo di fila, le "marca".
-2. Scorre ogni **colonna**: stessa cosa.
-3. Raggruppa le celle marcate che si toccano (su/giù/destra/sinistra) **e** sono dello stesso tipo → una sola combo. Così una forma a L, T o + conta come **1 combo** sola. (Tecnica: *BFS*, una "macchia d'olio" che si espande dalle celle vicine.)
+### 3.3 Elementi, giocatore, nemici
 
-**Come funziona `applyGravity()`**: per ogni colonna, dal basso verso l'alto, sposta in giù ogni sfera trovata (puntatore `write` = prima cella libera). Le celle rimaste vuote in cima vengono riempite con sfere casuali.
+- **`Element`**: fuoco, acqua, legno, luce, buio. Vantaggio **×2** (fuoco→legno→acqua→fuoco, luce↔buio), svantaggio **×0.5**.
+- **`Player`**: HP, attacco per elemento, cura. `heal`, `takeDamage`, e **`drain`**: perdita di HP auto-inflitta che **non uccide mai** (lascia almeno 1 HP).
+- **`Enemy`**: HP, attacco, `turnInterval` (ogni quanti turni attacca), `turnCountdown`, **tratti** (`traits`) e `rage` (rabbia accumulata). `currentAttack` = attacco attuale, rabbia inclusa.
 
-**`randomIndex`**: la funzione che genera numeri casuali è "iniettabile": nei test si passa una funzione prevedibile, così i risultati sono sempre uguali.
+**Tratti dei nemici (`EnemyTrait`)** — rendono gli scontri diversi tra loro:
 
-### 3.3 `Element.swift` — sasso/carta/forbici
+| Tratto | Effetto | Come lo affronti |
+|---|---|---|
+| `comboShield(minCombos:)` | **Immune** alle mosse con meno di N combo (le abilità passano) | fai tante combo o usa abilità |
+| `enrage(x)` | dopo ogni attacco, l'attacco cresce del x% | uccidilo in fretta |
+| `regenerate(x)` | recupera x% degli HP dopo ogni tua mossa | tanto danno in poche mosse |
+| `absorb(elemento)` | i danni di quell'elemento lo **curano** | evita quel colore |
+| `armor(n)` | toglie n danni da **ogni** colpo | pochi colpi grossi (match grandi) |
 
-- **`Element`**: `fire, water, wood, light, dark` (niente heal).
-- `multiplier(against:)`:
-  - **×2** se vantaggio: fuoco→legno, legno→acqua, acqua→fuoco, luce↔buio
-  - **×0.5** se svantaggio: il contrario del triangolo
-  - **×1** altrimenti
-- `OrbType.element`: converte un colore di sfera in elemento; per `heal` ritorna `nil` (la sfera cura invece di attaccare).
+### 3.4 `BattleEngine.swift` — il combattimento
 
-### 3.4 `Player.swift` — il giocatore
+Ordine di un turno (`resolveTurn(clusters:)`):
+1. **Inizio turno**: scudo/cura "a ogni turno" e perdite di HP dei malus (non letali).
+2. Si costruisce il **`TurnContext`** della mossa: quante combo, quali colori, quante sfere in tutto, HP attuali (in %).
+3. Per ogni combo: elemento → danno al bersaglio (passando dal `ModifierResolver` e dai **tratti** del nemico); cuore → cura.
+4. **Effetti di fine mossa**: scudo / cura / perdita di HP "se hai fatto X" (es. "+600 scudo se elimini 15+ sfere").
+5. I nemici con `regenerate` si curano.
+6. Ogni nemico attivo avanza il countdown; chi arriva a 0 attacca: danno **ridotto** (riduzione danni), **moltiplicato** (malus "danni subiti ×"), poi lo **scudo** ne assorbe una parte. Dopo l'attacco, la `rage` cresce.
+7. Fine turno: buff temporanei e cooldown delle abilità scendono di 1.
+8. Ritorna il `TurnReport`: colpi (`PlayerAttack`, con `block` = assorbito/immune), cure, scudo, `selfDamage`, attacchi nemici e `appliedModifiers` (quali bonus sono scattati e da dove).
 
-- `maxHP`, `currentHP`
-- `attack`: dizionario elemento → danno base (es. fuoco 1000)
-- `recovery`: cura base (300)
-- `takeDamage` / `heal`: modificano gli HP senza andare sotto 0 o sopra il massimo, e ritornano quanto è cambiato davvero.
-- `init(..., currentHP:)`: si può creare un giocatore già ferito (serve alla run per portare i danni da una battaglia all'altra).
-- `Player.test`: giocatore preconfezionato per le prove.
+`useAbility(_:board:)` usa un'abilità prima della mossa (vedi 3.7).
 
-### 3.5 `Enemy.swift` — i nemici
+### 3.5 Modificatori (`Modifiers/`) — bonus, malus e condizioni
 
-- `name`, `element`, `maxHP`, `currentHP`, `attackPower`
-- `turnInterval`: ogni quanti turni attacca
-- `turnCountdown`: turni rimasti al prossimo attacco
-- `advanceTurn()`: scala il countdown di 1; quando arriva a 0 ritorna `true` (= attacca) e riparte da `turnInterval`.
-- `delay(by:)`: allunga il countdown (usato dalle abilità che "ritardano" i nemici).
-- `Enemy.testRoster`: Slime (legno), Golem (acqua), Drago (fuoco).
+**Reliquie, talenti degli eroi e buff delle abilità parlano tutti la stessa lingua**: una lista di `Modifier`. Una sola calcolatrice (`ModifierResolver`) li applica.
 
-### 3.6 `BattleEngine.swift` — il combattimento
+**Condizioni**:
+- `ClusterCondition` (su **un singolo match**): `orbsAtLeast(n)`, `orbsAtMost(n)`, `orbsExactly(n)` → "match da esattamente 4 sfere", "match da 5+ sfere"…
+- `TurnCondition` (su **tutta la mossa**): `combosAtLeast(n)`, `combosAtMost(n)`, `colorsAtLeast(n)` (colori diversi), `matched([tipi])` (es. fuoco **e** luce nella stessa mossa), `orbsAtLeast(n)` (sfere totali), `hpBelow(x)` / `hpAbove(x)`.
 
-Tipi di supporto:
-- `EncounterMode`: `.simultaneous` (tutti i nemici in campo) o `.sequential` (uno alla volta).
-- `BattleOutcome`: `.ongoing` (in corso), `.victory`, `.defeat`.
-- `CombatRules`: i bonus (+25% per ogni combo extra, +25% per ogni sfera oltre la terza).
-- `PlayerAttack`, `EnemyAttack`, `TurnReport`: il "verbale" di cosa è successo nel turno (l'app lo usa per animare).
+**Modificatori**:
 
-Metodi principali:
-- `activeEnemyIndices`: quali nemici sono in gioco ora.
-- `targetIndex` / `selectTarget(_:)`: nemico bersaglio (scelto dal giocatore toccandolo, altrimenti il primo vivo).
-- **`resolveTurn(clusters:)`**: il cuore del gioco, vedi sotto.
-- **`useAbility(_:board:)`**: usa un'abilità prima della mossa (vedi 3.8).
-- `resolver`: la calcolatrice dei bonus (modificatori permanenti + buff temporanei, vedi 3.7).
-- `shield`: scudo attuale; assorbe i danni nemici prima degli HP.
-- `reset()`: riporta tutto allo stato iniziale.
-
-#### La formula del danno
-
-$$
-\text{danno} = \text{attacco}_{elem} \times \underbrace{\left(1 + 0.25 \cdot (\text{sfere} - 3)\right)}_{\text{bonus sfere}} \times \underbrace{\left(1 + 0.25 \cdot (\text{combo} - 1)\right)}_{\text{bonus combo}} \times \text{vantaggio elemento}
-$$
-
-**Esempio**: fai 2 combo nel turno; una è di 4 sfere fuoco, il bersaglio è lo Slime (legno).
-- bonus sfere = 1 + 0.25·1 = 1.25
-- bonus combo = 1 + 0.25·1 = 1.25
-- vantaggio = ×2 (fuoco batte legno)
-- danno = 1000 × 1.25 × 1.25 × 2 = **3125**
-
-Le combo di sfere **heal** invece curano: `recovery × bonus sfere × bonus combo`.
-
-Con reliquie/talenti la formula si allarga (vedi 3.7): senza modificatori il risultato è identico a quello sopra.
-
-#### Ordine di un turno (`resolveTurn`)
-1. Se la battaglia è già finita, non fa nulla.
-2. **Inizio turno**: scudi e cure "a inizio turno" dei modificatori.
-3. Per ogni combo: se è un elemento → danno al bersaglio; se è heal → cura (passando dal `ModifierResolver`).
-4. **Trigger combo**: se hai fatto abbastanza combo, scatta lo scudo "su combo".
-5. Ogni nemico attivo (che era in campo già a inizio turno) avanza il countdown; chi arriva a 0 attacca: il danno viene **ridotto** (riduzione danni), poi lo **scudo** ne assorbe una parte, il resto toglie HP.
-6. Fine turno: i buff temporanei perdono 1 turno, i cooldown delle abilità scendono di 1.
-7. Ritorna il `TurnReport`, che ora contiene anche `shieldGained` e `appliedModifiers` (l'elenco di **quali** bonus sono scattati e da dove vengono).
-
-### 3.7 Modificatori e reliquie (`Modifiers/`, `Relics/`)
-
-L'idea: **reliquie, talenti dei personaggi e buff delle abilità parlano tutti la stessa lingua**: una lista di `Modifier`. Una sola "calcolatrice" (`ModifierResolver`) li applica. Così aggiungere una reliquia nuova = scrivere una riga di dati, senza toccare il combattimento.
-
-**`Modifier`** — i tipi di bonus disponibili:
-
-| Modificatore | Effetto |
+| Gruppo | Modificatori |
 |---|---|
-| `flatDamage(element:amount:)` | +N all'attacco base (di un elemento o di tutti se `nil`) |
-| `damageMultiplier(element:factor:)` | danno finale × fattore |
-| `comboBonus(x)` | ogni combo extra vale +x in più (normale: +25%) |
-| `orbBonus(orb:amount:)` | ogni sfera oltre la 3ª vale +x in più |
-| `flatHeal(n)` / `healMultiplier(x)` | cura +N / cura × x |
-| `maxHPMultiplier(x)` | HP massimi × x |
-| `damageReduction(x)` | danni subiti −x (totale massimo 75%) |
-| `shieldOnTurnStart(n)` / `healOnTurnStart(n)` | a ogni turno: +N scudo / +N HP |
-| `shieldOnCombo(minCombos:amount:)` | se fai almeno N combo: +scudo |
-| `damageOnCombo(minCombos:factor:)` | se fai almeno N combo: tutto il danno × fattore |
+| Danno | `flatDamage`, `damageMultiplier`, **`clusterDamage(condizione, ...)`** (match che rispettano la condizione), **`turnDamage(condizione, ...)`** (tutta la mossa), `comboBonus`, `orbBonus` |
+| Cura / HP | `flatHeal`, `healMultiplier`, `maxHPMultiplier`, `healOnTurnStart`, `turnHeal(condizione, n)`, **`hpLossOnTurnStart(n)`**, **`turnSelfDamage(condizione, n)`** |
+| Difesa | `damageReduction` (max 75%), **`damageTakenMultiplier`** (es. ×1.5 = subisci di più), `shieldOnTurnStart`, `turnShield(condizione, n)` |
+| Griglia | **`moveTime(secondi)`** (più o meno tempo per muovere) |
 
-**`ModifierSource`** = un gruppo di modificatori con un **nome** (es. la reliquia "Brace Eterna"). Il nome serve per capire chi ha dato quale bonus.
+I modificatori in **grassetto** sono quelli tipici del **rischio/ricompensa**: danno enorme ma perdi HP a ogni turno, meno tempo per muovere, subisci più danni, ecc. Nell'app i malus sono mostrati **in rosso** con un triangolo di avviso.
 
-**`ModifierResolver`** — l'ordine è **fisso** (quindi il risultato non cambia se le reliquie sono in ordine diverso):
+**La formula del danno di un match**:
 
 $$
 \text{danno} = (\text{attacco} + \text{bonus fissi}) \times \text{bonus sfere} \times \text{bonus combo} \times \text{vantaggio elemento} \times \prod \text{moltiplicatori}
 $$
 
-Ogni calcolo ritorna un `Resolved`: il **valore** + l'elenco `applied` dei modificatori usati ("ispezionabile": puoi mostrare al giocatore *perché* ha fatto quel danno).
+- bonus sfere = $1 + 0.25 \cdot (\text{sfere} - 3)$ · bonus combo = $1 + 0.25 \cdot (\text{combo} - 1)$ (i `comboBonus`/`orbBonus` cambiano lo 0.25)
+- i moltiplicatori includono affinità dell'eroe, reliquie, `clusterDamage` e `turnDamage` soddisfatti.
+- L'ordine è **fisso** (prima le somme, poi i prodotti): il risultato non cambia con l'ordine delle reliquie.
 
-**Esempio**: attacco fuoco 1000, reliquie "fuoco ×1.5", "+100 attacco", "+25% per combo extra"; 2 combo, bersaglio legno:
-(1000 + 100) × 1 × 1.5 (combo: 1 + 0.5) × 2 (vantaggio) × 1.5 = **4950**.
+**Esempio (Nerea, livello 1)**: match da 4 sfere acqua, 1 combo, nemico neutro: 950 × 1.25 (4 sfere) × 1.5 (affinità) × 1.6 (talento "Quadrato") = **2850**.
 
-**`Relic`**: `id`, `name`, `rarity` (comune/rara/leggendaria), `modifiers`. Catalogo in `Relic.standard` (10 reliquie, es. "Brace Eterna" fuoco ×1.5, "Scudo di Quercia" +150 scudo a turno, "Corona del Caos" bonus a 4-5 combo).
+### 3.6 Eroi (`Characters/`)
 
-### 3.8 Abilità attive (`Abilities/Ability.swift`)
+Ogni run si gioca con **un solo eroe**. Attacca con **tutti** i colori, ma il **suo elemento** ha l'**affinità ×1.5**. Livelli 1–5 (+10% statistiche per livello); i talenti si sbloccano ai livelli 1, 3 e 5.
 
-- **`Ability`**: `name`, `cooldown` (mosse di attesa dopo l'uso), `charges` (usi per battaglia, `nil` = infiniti), `hpCost` (HP da pagare), `effects`.
-- **`AbilityEffect`** — cosa può fare:
-  - `damage(target:element:multiplier:)`: danno al bersaglio o a tutti (`attacco elemento × moltiplicatore × vantaggio`; **non** usa le reliquie)
-  - `healPercent(x)`: cura una % degli HP massimi
-  - `shield(n)`: +scudo
-  - `delayEnemies(turns:)`: i nemici attaccano N turni dopo
-  - `buff(source, turns:)`: modificatori temporanei per N mosse (compresa quella attuale)
-  - `convertOrbs(from:to:)`, `refreshBoard`: agiscono sulla **griglia** (serve passare il `BoardEngine`)
-- **`AbilityState`**: l'abilità dentro una battaglia, con proprietario, cooldown rimasto e cariche rimaste. `isReady` = usabile ora.
-- **`useAbility`** può fallire con `AbilityError`: `onCooldown`, `noCharges`, `notEnoughHP` (non puoi suicidarti col costo), `needsBoard`, `battleOver`, `invalidIndex`.
-- Ritorna un `AbilityReport` (danni, cure, scudo, nemici ritardati, sfere convertite) per le animazioni.
-
-**Cooldown in pratica**: abilità con cooldown 2 usata al turno 1 → di nuovo pronta al turno 3.
-
-### 3.9 Il personaggio (`Characters/`)
-
-Ogni run si gioca con **un solo personaggio**, scelto all'inizio. Niente party, niente reclutamento.
-
-- **`CharacterDefinition`**: `name`, `element`, statistiche base (HP, attacco, cura), `talents` (passivi), `abilities` (attive, possono essere più di una).
-  - Livelli 1–5: ogni livello sopra l'1 dà **+10%** a tutte le statistiche. Si sale di livello con la ricompensa `levelUp`.
-  - Il personaggio attacca con **tutti** i colori di sfera (stesso attacco base), ma il **suo elemento** ha l'**affinità**: danno **×1.5**. L'affinità è un normale modificatore ("Kael: Affinità"), quindi compare anche nella traccia del resolver.
-- **`PassiveTalent`**: nome + livello di sblocco + modificatori. Si attiva quando il personaggio raggiunge quel livello.
-- Funzioni utili:
-  - `makePlayer(level:resolver:missingHP:)`: crea il `Player` usato dal combattimento (stesso attacco per ogni elemento).
-  - `modifierSources(at: livello)`: affinità + talenti sbloccati a quel livello, chiamati "Personaggio: Talento".
-  - `abilityStates`: le abilità pronte per una battaglia.
-
-**Esempio**: Kael livello 1 (attacco 900, Brace +100 fuoco), 3 sfere fuoco contro un nemico neutro: (900 + 100) × 1.5 = **1500**. Con 3 sfere acqua: **900**.
-
-I 5 personaggi (`CharacterDefinition.standard`):
-
-| Nome | Elemento | HP / Attacco / Cura | Talenti (livello) | Abilità |
+| Eroe | Elemento | Stile | Talenti (Lv 1 · 3 · 5) | Abilità |
 |---|---|---|---|---|
-| Kael | Fuoco | 4000 / 900 / 250 | Brace: +100 attacco fuoco (1) · Furia: ×1.2 a 4+ combo (3) | Esplosione: 6× danno fuoco al bersaglio (cd 4) |
-| Nerea | Acqua | 4200 / 850 / 300 | Marea: +10% per sfera extra acqua (1) · Risacca: +150 HP a turno (3) | Onda: fuoco → acqua sulla griglia (cd 5) |
-| Sylas | Legno | 5000 / 750 / 250 | Corteccia: −10% danni (1) · Radici: +400 scudo a 3+ combo (3) | Barriera: +1500 scudo (cd 4) |
-| Lumen | Luce | 3800 / 800 / 450 | Grazia: cura ×1.25 (1) · Aura: HP ×1.1 (3) | Benedizione: cura 35% + buio → cuori (cd 5) |
-| Umbra | Buio | 3500 / 1000 / 200 | Ombra: +5% per combo extra (1) · Patto: tutto il danno ×1.1 (3) | Eclissi: ritarda i nemici + buio ×2 per 1 turno (cd 3, 2 cariche, costa 300 HP) |
+| **Kael** "Il Ritmo" | Fuoco | tante combo | +10% per combo extra · ×1.5 con 6+ combo · ×2 con 8+ combo | Esplosione: fuoco ×8 a un nemico |
+| **Nerea** "La Geometra" | Acqua | match da **esattamente 4** | ×1.6 nei match da 4 · ×1.8 match da 4 acqua · +350 HP con 3+ combo e ×1.3 match da 4 | Onda: fuoco → acqua |
+| **Sylas** "Il Colosso" | Legno | match **enormi (5+)** e scudo | ×1.7 nei match da 5+ · +600 scudo eliminando 15+ sfere · ×1.6 match da 6+ | Germoglio: luce → legno + 800 scudo |
+| **Lumen** "L'Iride" | Luce | **tanti colori diversi** | ×1.7 con 4+ colori · +500 HP con 5+ colori · ×2 con 6 colori | Rinascita: nuova griglia + cura 15% |
+| **Umbra** "La Berserker" | Buio | **HP bassi** (rischio) | ×1.7 sotto il 50% HP · ×1.25 danno ma −80 HP a turno · ×2 sotto il 25% HP | Eclissi (costa 500 HP): buio ×4 a tutti + ritarda i nemici |
+| **Mira** "La Gemella" | Fuoco | **fuoco + luce insieme** | ×1.8 abbinando fuoco+luce · ×1.4 match da 4+ luce · scudo e ×1.4 con fuoco+luce+cuore | Scintilla: legno → fuoco, buio → luce |
 
-### 3.10 La run roguelike (`Run/`)
+### 3.7 Abilità attive (`Abilities/Ability.swift`)
 
-Una **run** è una partita completa: una serie di **piani** (floor). A ogni piano scegli un **nodo** tra alcune opzioni; l'ultimo piano è sempre il **boss**.
+- **`Ability`**: `cooldown` (mosse di attesa), `charges` (usi per battaglia, `nil` = infiniti), `hpCost`, `effects`.
+- **Effetti**: danno (bersaglio o tutti), cura %, scudo, ritardo nemici, buff temporaneo, conversione sfere, nuova griglia.
+- Le abilità **ignorano lo scudo combo** dei nemici, ma non armatura e assorbimento.
+- Errori possibili: `onCooldown`, `noCharges`, `notEnoughHP`, `needsBoard`, `battleOver`, `invalidIndex`.
+
+### 3.8 Reliquie (`Relics/Relic.swift`)
+
+24 reliquie in 3 rarità (comune, rara, leggendaria), ognuna con nome, frase d'atmosfera e modificatori. Molte sono **a doppio taglio**. Qualche esempio:
+
+| Reliquia | Rarità | Effetto |
+|---|---|---|
+| Lente Quadrifoglio | comune | ×1.5 nei match da esattamente 4 |
+| Martello del Gigante | comune | ×1.7 nei match da 5+, **ma ×0.8 nei match da 3** |
+| Clessidra | comune | +1.5 s per muovere, **ma danno ×0.9** |
+| Moneta Truccata | comune | +200 attacco, **ma danni subiti ×1.15** |
+| Lama Insanguinata | rara | danno ×1.5, **ma −120 HP a ogni turno** |
+| Maschera del Berserker | rara | ×2 sotto il 40% HP |
+| Cuore di Vetro | rara | danno ×1.5, **ma HP massimi ×0.7** |
+| Catena | rara | +15% per combo extra, **ma −400 HP se fai 2 combo o meno** |
+| Clessidra Spezzata | rara | danno ×1.6, **ma −1.5 s per muovere** |
+| Patto Oscuro | leggendaria | danno ×2, **ma danni subiti ×1.5 e cure ×0.5** |
+| Singolarità | leggendaria | ×3 nei match da 6+, **ma −10% per combo extra** |
+
+### 3.9 La run (`Run/`)
+
+#### La mappa (`RunMap`, generata da `StandardRunRules.makeMap`)
+
+```mermaid
+flowchart BT
+    S1[⚔ Piano 1: combattimenti] --> P2[? / ⚔]
+    P2 --> P4[elite / accampamento / mercante...]
+    P4 --> P7[🎁 Piano 7: tutti tesori]
+    P7 --> P12[⛺ Piano 12: tutti accampamenti]
+    P12 --> B[👑 Boss]
+```
+
+- **12 piani + boss**, 7 colonne. Si generano **6 percorsi** che salgono di un piano alla volta spostandosi al massimo di una colonna, **senza incrociarsi**. Dove i percorsi si toccano, nascono i **bivi**.
+- Regole fisse: piano 1 = solo combattimenti · piano 7 = solo tesori · piano 12 = solo accampamenti · in cima il boss.
+- Gli altri nodi sono estratti a caso: combattimento (45), evento (22), elite (16, dal piano 5), accampamento (12, dal piano 5), mercante (7, dal piano 3). Elite, accampamenti e mercanti **non si ripetono di fila** sullo stesso percorso.
+- `MapNode`: `id`, `row` (piano), `column`, `kind`, `next` (nodi raggiungibili sopra).
+
+#### Le stanze (`NodeKind`)
+
+| Stanza | Cosa succede |
+|---|---|
+| ⚔ **Combattimento** | 1–2 nemici nei primi piani, poi 2–3. Vittoria: 15–25 oro + scelta tra **reliquia**, **cura 20%** o **35 oro** |
+| 🔥 **Elite** | un nemico forte con tratti speciali. Vittoria: 35–50 oro + scelta tra **2 reliquie rare/leggendarie** o **+1 livello** |
+| ❓ **Evento** | una scena testuale con scelte rischiose (vedi sotto) |
+| 🛒 **Mercante** | 3 reliquie in vendita (70/120/180 oro circa), cura 30% (50 oro), +1 livello (100 oro) |
+| ⛺ **Accampamento** | **Riposa** (+35% HP) **oppure** **Allenati** (+1 livello) |
+| 🎁 **Tesoro** | scegli 1 tra 3 reliquie |
+| 👑 **Boss** | Drago Rosso, Lich o Titano. Vincere = vincere la run |
+
+**Eventi** (`RunEvent.standard`, 8 in tutto): ogni opzione ha degli effetti (`EventEffect`: perdi/recupera HP, guadagna/spendi oro, reliquia, livello, **combattimento**). Esempi:
+- *Altare di Sangue*: −25% HP → reliquia rara.
+- *Cavaliere Ferito*: curalo (−15% HP, +1 livello) **oppure** derubalo (+90 oro, ma combatti un elite).
+- *Santuario della Luce*: prega (+25% HP) **oppure** spezza il sigillo (reliquia **leggendaria**, ma combatti un elite).
+- Le opzioni che costano oro sono disabilitate se non ne hai abbastanza.
+
+#### Difficoltà
+- I nemici crescono di **+12% HP** e **+6% attacco** per piano.
+- 10 tipi di nemici normali (alcuni compaiono solo dai piani alti), 4 elite, 3 boss, tutti con tratti (tabella in 3.3).
+
+#### Il motore (`RunEngine`)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ScegliNodo
-    ScegliNodo --> Combattimento: combat / elite / boss
-    ScegliNodo --> ScegliRicompensa: treasure
-    ScegliNodo --> ScegliNodo: rest (cura, piano +1)
-    Combattimento --> ScegliRicompensa: vittoria
-    Combattimento --> Vinta: vittoria sul boss
+    [*] --> Mappa
+    Mappa --> Combattimento: combattimento / elite / boss
+    Mappa --> Evento
+    Mappa --> Mercante
+    Mappa --> Accampamento
+    Mappa --> Ricompensa: tesoro
+    Evento --> Mappa: scelta
+    Evento --> Combattimento: scelta "combatti"
+    Mercante --> Mappa: esci
+    Accampamento --> Mappa: riposa / allenati
+    Combattimento --> Ricompensa: vittoria (+oro)
+    Combattimento --> Vinta: boss sconfitto
     Combattimento --> Persa: sconfitta
-    ScegliRicompensa --> ScegliNodo: scelta o salta (piano +1)
-    ScegliNodo --> Vinta: piani finiti
+    Ricompensa --> Mappa: scelta o salta
 ```
 
-- **`NodeKind`**: `combat` (nemici normali), `elite` (nemico forte, ricompense migliori), `rest` (cura), `treasure` (scegli una reliquia), `boss`.
-- **`Reward`**: `relic` (nuova reliquia), `levelUp` (+1 livello al personaggio), `heal` (cura una %).
-- **`RunState`**: **tutto** lo stato della run (piano, fase, personaggio e suo livello, reliquie, HP persi, generatore casuale). È `Codable`: si salva in JSON e si ricarica esattamente dov'era.
-  - Gli HP sono salvati come **HP persi** (`missingHP`): così se gli HP massimi cambiano (level-up, reliquia) i danni subiti restano coerenti.
-- **`SeededRandom`**: generatore casuale con "seme". Stesso seme + stesse scelte = **stessa identica run** (utile per test, replay, "sfida del giorno").
-- **`RunEngine`** — i comandi:
-  - `RunEngine(seed:characterID:)` nuova run (es. `characterID: "kael"`) · `RunEngine(restoring:)` riprende un salvataggio
-  - `chooseNode(i)` → sceglie il nodo
-  - `makeBattle()` → crea il `BattleEngine` con personaggio, reliquie, talenti, abilità e HP attuali
-  - `finishBattle(battle)` → registra il risultato (gli HP persi restano per la prossima battaglia)
-  - `chooseReward(i)` (o `nil` per saltare)
-  - Se chiami un comando nella fase sbagliata: errore `RunError.wrongPhase`.
-- **`RunRules`** — i "ganci" (hook) per cambiare le regole **senza toccare il motore**: quali nodi offrire, quali nemici, come crescono HP/attacco dei nemici, quali ricompense. `StandardRunRules` è la versione di default:
-  - 8 piani, 3 scelte per piano (piano 0 sempre combattimento, ultimo sempre boss, elite dal piano 2)
-  - HP nemici **+20% per piano**, attacco **+12% per piano**
-  - combattimenti normali: 1 nemico al piano 0, fino a 3 più avanti
-  - ricompense combattimento: 2 reliquie + 1 level-up (o una cura se sei già al livello massimo); l'elite offre reliquie almeno rare
-- **`GameCatalog`**: tutto ciò che la run può usare (reliquie, personaggi selezionabili, `EnemyTemplate` dei nemici). I salvataggi contengono solo gli **id**, che vengono cercati qui.
+| Comando | Quando |
+|---|---|
+| `RunEngine(seed:characterID:)` / `RunEngine(restoring:)` | nuova run / riprendi un salvataggio |
+| `reachableNodes` | i nodi che puoi scegliere ora |
+| `travel(to: id)` | entri in un nodo |
+| `makeBattle()` / `finishBattle(battle)` | crea la battaglia / registra il risultato (gli HP persi restano) |
+| `chooseReward(i)` (o `nil`) | scegli o salti la ricompensa |
+| `chooseEventOption(i)` | scelta in un evento |
+| `buy(i)` / `leaveShop()` | mercante |
+| `rest(.heal)` / `rest(.train)` | accampamento |
 
-> Nell'app questi sistemi sono usati dalle schermate in `PAD-lite/Run/` e dalla battaglia (vedi 4.7). La vecchia campagna a livelli e i talenti del menu sono stati **rimossi**: ora si gioca solo a run.
+Errori: `wrongPhase` (comando nel momento sbagliato), `invalidChoice`, `notEnoughGold`.
+
+- **`RunState`** contiene **tutto** (mappa, percorso fatto, fase, eroe e livello, reliquie, oro, HP persi, eventi già visti, generatore casuale) ed è `Codable`: si salva in JSON e si riprende **identico**.
+- **`SeededRandom`**: stesso seme + stesse scelte = stessa identica run.
+- **`RunRules`** è il punto per cambiare le regole senza toccare il motore (mappa, nemici, crescita, oro, ricompense, negozio, eventi). `StandardRunRules` è la versione di default.
 
 ---
 
-## 4. L'App (grafica e input) file per file
+## 4. L'App
 
-Usa **SpriteKit**, il motore 2D di Apple. Concetti base:
-- **`SKScene`**: la "scena", una tela che si ridisegna ~60-120 volte al secondo.
-- **`SKNode`**: qualsiasi oggetto nella scena (può contenere altri nodi, come cartelle).
-- **`SKSpriteNode`** (immagine/rettangolo), **`SKShapeNode`** (forma: cerchio, rettangolo), **`SKLabelNode`** (testo).
-- **`SKAction`**: un'animazione (muovi, scala, sfuma, aspetta...). Si possono mettere in `sequence` (una dopo l'altra) o `group` (insieme).
-- **`zPosition`**: chi sta sopra a chi (numero più alto = più in primo piano).
-- **Coordinate**: in SpriteKit **y cresce verso l'alto** (origine in basso a sinistra).
-
-### 4.1 `PadLiteApp.swift` — si parte da qui
-`@main` = "questo è l'inizio del programma".
-- Crea **un solo** `GameProgress` (opzioni + run salvata) e lo rende disponibile a tutte le schermate con `.environment(...)`.
-- **`RootView`** decide cosa mostrare:
-  - c'è una battaglia attiva (`activeBattle`) → la **battaglia** (`GameView`) a schermo intero, con una **X** in alto a destra per uscire (la run resta su quello scontro: rientrando, la battaglia **ricomincia** da capo)
-  - altrimenti, se stai guardando la run (`showingRun`) → **`RunView`**
-  - altrimenti → il **menu** (`MainMenuView`)
-- A fine battaglia (tocco sulla schermata VITTORIA/SCONFITTA) passa il risultato alla run (`progress.finishBattle`) e torna alla `RunView`.
-
-### 4.2 `GameViewController.swift` — il contenitore
-- Riceve un `BattleEngine` già pronto (creato dalla run con personaggio, reliquie, abilità e HP attuali), le **opzioni** e cosa fare a fine battaglia (`onBattleEnd`).
-- Crea il `BoardEngine` (6×5) e la `TestBattleScene`.
-- `loadView()`: crea la `SKView` (la superficie dove SpriteKit disegna).
-- `viewDidLayoutSubviews()`: chiamato quando cambia la dimensione dello schermo; calcola il `BoardLayout` (dove mettere la griglia e quanto grandi le celle) e lo passa alla scena.
-- `boardLayout(...)`: mette la griglia nella **metà inferiore** dello schermo, centrata, con celle quadrate il più grandi possibile.
-- `GameView`: un "adattatore" per usare questo controller (stile UIKit, vecchio) dentro SwiftUI (stile nuovo).
-
-### 4.3 `GameScene.swift` — la griglia giocabile
-È la classe base. Ha 3 stati: `idle` (fermo), `dragging` (stai trascinando), `resolving` (sta calcolando/animando le combo).
-
-Impostazioni (modificabili dalle Opzioni):
-- `moveDuration` → secondi a disposizione per muovere (default 5)
-- `hapticsEnabled` → vibrazione accesa/spenta
-
-Costanti utili da modificare per "tarare" il gioco:
-- `Timing.comboInterval`, `pop`, ecc. → velocità animazioni
-- `Tuning.swapZone` → quanto devi avvicinarti al centro di una cella per scambiare
-
-Flusso dell'input:
-
-```mermaid
-sequenceDiagram
-    participant Dito
-    participant GameScene
-    participant BoardEngine
-    Dito->>GameScene: touchesBegan (tocco una sfera)
-    GameScene->>GameScene: stato = dragging, ingrandisce la sfera
-    loop mentre trascino
-        Dito->>GameScene: touchesMoved
-        GameScene->>BoardEngine: swap(da, a)
-        GameScene->>GameScene: anima la sfera spostata, parte il timer al 1° swap
-    end
-    Dito->>GameScene: touchesEnded (o timer scaduto)
-    GameScene->>GameScene: stato = resolving
-    loop finché ci sono combo (cascate)
-        GameScene->>BoardEngine: findMatches()
-        GameScene->>GameScene: anima "pop" + scritta "N Combo" + vibrazione
-        GameScene->>BoardEngine: removeOrbs + applyGravity()
-        GameScene->>GameScene: anima cadute
-    end
-    GameScene->>GameScene: stato = idle
-    GameScene->>GameScene: boardDidFinishTurn(tutte le combo)
-```
-
-Dettagli:
-- `orbNodes`: dizionario **id sfera → disegno**. Così, quando il core dice "la sfera 42 cade", l'app sa quale disegno muovere.
-- `trackDrag`: se il dito salta più celle in un colpo, cammina una cella alla volta, così ogni scambio è sempre tra vicine.
-- `update(_:)`: chiamato ogni frame; aggiorna la barra del tempo (verde → giallo → rossa) e chiude la mossa allo scadere.
-- **Hook per sottoclassi** (metodi vuoti pensati per essere ridefiniti):
-  - `boardLayoutDidChange(...)`: "ho ridisegnato la griglia, ecco lo spazio libero sopra"
-  - `boardDidFinishTurn(...)`: "il giocatore ha finito la mossa, ecco le combo"
-- `engine`: la griglia, visibile anche alla sottoclasse (serve alle abilità che cambiano le sfere).
-- `reloadOrbs()`: ridisegna tutte le sfere leggendo la griglia, con un piccolo "pop" (usato dopo un'abilità che converte le sfere).
-- In fondo: `makeOrbTextures` / `makeOrbNode` creano i disegni delle sfere usando `OrbArtwork` (vedi 4.9).
-
-### 4.4 `TestBattleScene.swift` — la battaglia
-`class TestBattleScene: GameScene` = **eredita** tutto da `GameScene` e aggiunge la battaglia.
-
-- `boardLayoutDidChange` (override): nello spazio sopra la griglia piazza (dall'alto) scritta del turno, nemici affiancati, **riga di pulsanti abilità**, barra HP del giocatore.
-- `touchesBegan` (override): se c'è la schermata di fine, chiama `onBattleEnd`; se tocchi un nemico lo seleziona come bersaglio; se tocchi un'**abilità** la usa; altrimenti passa il tocco alla griglia (`super.touchesBegan`).
-- `useAbility(i)` / `playAbility(report)`: chiama `battle.useAbility(i, board: engine)` (se non è pronta non succede nulla), poi anima: sfere ridisegnate se cambiate, colpi sui nemici, cura, aggiornamento di HP/scudo/cooldown; se l'abilità chiude la battaglia mostra il risultato.
-- `boardDidFinishTurn` (override): blocca l'input, chiama `battle.resolveTurn(...)`, poi `play(report)`.
-- `play(report)`: anima nell'ordine: colpi del giocatore → cura → attacchi nemici → controlla vittoria/sconfitta.
-- `refresh`: allinea la grafica allo stato reale del `BattleEngine` (nemici, barra HP, pulsanti abilità, scritta "Turno N · Scudo X").
-- `showOutcome`: schermata "VITTORIA!" / "SCONFITTA".
-- `restartBattle`: resetta battaglia e griglia.
-- In fondo, `array[safe: i]`: accesso ad array che ritorna `nil` invece di crashare se l'indice non esiste.
-
-### 4.5 `BattleNodes.swift` — componenti grafici
-- `Element.displayName`: nomi in italiano ("Fuoco", "Acqua"...).
-- **`HPBarNode`**: barra della vita con testo "attuale / massimo". `set(...)` la aggiorna (con animazione opzionale).
-- **`EnemyNode`**: un nemico disegnato = cerchio colorato per elemento + nome + barra HP + "Attacco: N" + anello giallo pulsante se è il bersaglio.
-  - `update(...)`: aggiorna testo/trasparenza (sconfitto = quasi trasparente, "In attesa" = semi-trasparente).
-  - `contains(pointInParent:)`: il tocco è sopra questo nemico?
-  - `showHit`: scuote il nemico e mostra il numero del danno.
-  - `playAttack`: piccolo "balzo" quando attacca.
-- **`AbilityButtonNode`**: pulsante di un'abilità con nome e stato: "Pronta" (bordo dorato, con cariche rimaste e costo HP se ci sono), "Ricarica: N" o "Esaurita" (sbiadito).
-- **`FloatingText.spawn`**: numerino che sale e svanisce (es. "-3125", "+300").
-
-### 4.6 `ContentView.swift`
-Schermata di prova precedente (testo + angolo della cerniera per dispositivi pieghevoli). **Non è usata**.
-
-### 4.7 `Menu/` e `Run/` — le schermate (SwiftUI)
+### 4.1 Le schermate
 
 ```mermaid
 flowchart LR
-    MM[Menu principale] -- "Nuova run" --> CS[Scelta personaggio]
-    CS --> RV[Schermata run]
+    MM[Menu principale] -- "Nuova run" --> CS[Scelta eroe]
+    CS --> RV[Mappa della run]
     MM -- "Continua" --> RV
     MM --> OV[Opzioni]
-    RV -- "scelgo un nodo" --> RV
-    RV -- "Inizia battaglia" --> B[Battaglia]
-    B -- "vittoria/sconfitta" --> RV
-    B -- "X (ricomincia dopo)" --> RV
-    RV -- "Menu" --> MM
-    RV -- "fine run: Torna al menu" --> MM
+    RV -- "tocco un nodo illuminato" --> P[Pannello della stanza]
+    P -- "Combatti!" --> B[Battaglia]
+    B -- "fine" --> P2[Bottino]
+    P2 --> RV
+    RV -- "☰" --> MM
 ```
 
-- **`GameProgress.swift`**: la "memoria" dell'app, salvata in `UserDefaults` (un piccolo archivio chiave → valore che sopravvive alla chiusura dell'app).
-  - `settings` (`GameSettings`): tempo per mossa e vibrazione.
-  - `run`: il `RunEngine` della run in corso (o `nil`).
-  - `runState`: copia dello stato della run, aggiornata dopo ogni azione: serve a SwiftUI per accorgersi dei cambiamenti (il `RunEngine` da solo non "avvisa").
-  - Azioni: `startRun(characterID:)`, `chooseNode`, `makeBattle`, `finishBattle`, `chooseReward`, `endRun`. Dopo ognuna la run viene **salvata in JSON** automaticamente: chiudi l'app e la ritrovi con "Continua".
-  - All'avvio ricarica la run salvata (se il salvataggio non è leggibile, lo ignora).
-- **`MainMenuView.swift`**: titolo, **Continua** (solo se c'è una run, con personaggio, livello e piano), **Nuova run**, **Opzioni**.
-- **`CharacterSelectView.swift`**: i 5 personaggi con elemento, statistiche, talenti (con livello di sblocco) e abilità. "Gioca con …" avvia la run; se ce n'è già una chiede conferma (andrebbe persa).
-- **`RunView.swift`**: in alto personaggio, livello, piano e barra HP; in basso le reliquie raccolte. Al centro cambia in base alla **fase** della run:
-  - scelta del nodo → lista di tappe (icona, nome, descrizione)
-  - combattimento → anteprima dei nemici (HP, attacco, ogni quanti turni attaccano) + **Inizia battaglia**
-  - ricompensa → lista di scelte (reliquia con rarità ed effetti, livello con talenti sbloccati, cura) + **Salta**
-  - vittoria/sconfitta → risultato + **Torna al menu** (chiude la run)
-- **`RunTexts.swift`**: traduce in italiano i tipi del core (nomi dei nodi, rarità, descrizione di ogni `Modifier` e `AbilityEffect`, riassunto delle abilità) e dà un colore SwiftUI a ogni elemento.
-- **`OptionsView.swift`**: Stepper per il tempo per mossa (3–10 s) e interruttore per la vibrazione.
+- **`PadLiteApp.swift` / `RootView`**: mostra la battaglia se ce n'è una attiva, altrimenti la run (`RunView`) se la stai guardando, altrimenti il menu. La **X** in battaglia torna alla mappa (lo scontro ricomincia da capo la volta dopo).
+- **`GameProgress.swift`**: opzioni + run in corso. Ogni azione (`travel`, `finishBattle`, `chooseReward`, `chooseEventOption`, `buy`, `leaveShop`, `rest`, `endRun`) aggiorna `runState` (così SwiftUI ridisegna) e **salva in JSON** in `UserDefaults`. All'avvio ricarica la run; salvataggi di versioni vecchie vengono ignorati.
+- **`MainMenuView.swift`**: sfondo sfumato, sfere-gemma che fluttuano, titolo dorato; "Continua" mostra ritratto, livello e piano.
+- **`CharacterSelectView.swift`**: una scheda per eroe con ritratto, titolo, stile di gioco, statistiche, talenti (bonus verdi, malus rossi) e abilità.
+- **`RunView.swift`**:
+  - **barra in alto** (`RunHUD`): ritratto (tocca per i dettagli dell'eroe), livello, barra HP, oro, piano, menu, e la fila di **icone delle reliquie** (tocca per i dettagli);
+  - la **mappa** (`MapView`);
+  - quando sei in una stanza, un **pannello** sopra la mappa oscurata: anteprima nemici con ritratti e tratti, bottino, evento, mercante, accampamento, fine run.
+- **`MapView.swift`**: la mappa disegnata dal basso verso l'alto. Linee tratteggiate tra i nodi; il percorso fatto è **dorato**; i nodi raggiungibili **pulsano**; quelli visitati hanno la spunta; quelli saltati sono sbiaditi. Si centra da sola sul nodo attuale.
+- **`RunVisuals.swift`**: `Theme` (colori), `HeroPortrait`, `RelicIcon` (icona per reliquia, bordo del colore della rarità), `OrbImage`, `EnemyPortrait`, `GoldLabel`, `HPBarView`, `ModifierList` (bonus verdi / malus rossi), `RelicCard`, `PanelCard`, `PrimaryButtonStyle`, `ChoiceButtonStyle`.
+- **`RunTexts.swift`**: le frasi italiane per condizioni, modificatori (con `isDrawback` per i malus), tratti nemici, effetti delle abilità, stanze, rarità.
 
-### 4.8 Icona dell'app
-- Va messa in `PAD-lite/Assets.xcassets/AppIcon.appiconset/AppIcon.png`: **1024×1024**, quadrata, senza trasparenza, senza angoli arrotondati (li aggiunge iOS).
-- `Contents.json` nella stessa cartella descrive le varianti (chiara, scura, "tinted"); scura e tinted sono facoltative.
-- In `project.yml` la riga `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` dice a Xcode quale icona usare.
-- La CI **non** crea queste cartelle: devono essere nel repository.
+### 4.2 La battaglia (SpriteKit)
 
-### 4.9 `OrbArtwork.swift` e `ComboHaptics.swift` — pezzi separati da `GameScene`
-Sono stati tolti da `GameScene.swift` per renderlo più corto e leggibile; non dipendono dallo stato della griglia.
-- **`OrbArtwork.swift`**: `baseColor` / `rimColor` (colore e bordo di ogni tipo di sfera) e `OrbArtwork.node(...)`, che disegna una sfera come cerchio + riflesso + simbolo (fiamma, goccia, foglia, stella, anello, cuore). `GameScene` la "fotografa" una volta in una texture per tipo, così il disegno è veloce.
-- **`ComboHaptics.swift`**: classe `ComboHaptics` con `prepare()` (accende il motore di vibrazione all'avvio della scena) e `play(combo:)` (un colpetto, più intenso a ogni combo). Sui dispositivi senza vibrazione non fa nulla.
+SpriteKit è il motore 2D di Apple: **`SKScene`** (la tela), **`SKNode`** (qualsiasi oggetto), **`SKSpriteNode`** (immagine), **`SKLabelNode`** (testo), **`SKAction`** (animazioni). In SpriteKit **y cresce verso l'alto**.
+
+- **`GameViewController.swift`**: riceve la battaglia già pronta dalla run; il tempo per muovere = opzione + bonus/malus `moveTime` delle reliquie (minimo 2 s).
+- **`GameScene.swift`**: griglia, trascinamento (anche in diagonale), timer, combo a cascata. `reloadOrbs()` ridisegna le sfere dopo un'abilità.
+- **`OrbArtwork.swift`**: ogni sfera è una **gemma** disegnata con Core Graphics (la libreria di disegno di Apple): bagliore colorato, sfumatura chiaro→scuro, faccetta centrale, riflesso e scintilla. Ogni tipo ha una **sagoma diversa** (fuoco esagono, acqua goccia, legno foglia, luce rombo, buio ottagono, cuore a cuore), così si distinguono anche senza i colori. Disegnate una volta sola per tipo e riusate (veloce).
+- **`EnemyArtwork.swift`**:
+  - `EnemyArtwork`: **mostri procedurali**. Ogni nome ha un "aspetto" (`Look`): forma del corpo (gelatina, palla, spinoso, blocco, alto), numero di occhi, bocca (sorriso/denti), corna, ali, cappello da fungo, corona, aura (elite dorata, boss rossa). I colori vengono dall'elemento. Elite e boss hanno sopracciglia arrabbiate e occhi luminosi.
+  - `BackdropArtwork`: sfondo notturno con stelle e colline.
+- **`TestBattleScene.swift`**: nemici, pulsanti abilità, barra HP. Mostra "ASSORBE +N" (nemico curato), "IMMUNE" (scudo combo), "SCUDO" (colpo assorbito dal tuo scudo) e i danni auto-inflitti.
+- **`BattleNodes.swift`**: `HPBarNode`, `EnemyNode` (ritratto che "respira", nome, barra HP, "Attacco: turni · danno", tratti in arancione, anello dorato sul bersaglio, lampo bianco quando colpito), `AbilityButtonNode`, `FloatingText`.
 
 ---
 
 ## 5. Il giro completo, in parole povere
 
-1. L'app parte → `PadLiteApp` carica opzioni ed eventuale run salvata (`GameProgress`) e mostra il **menu**.
-2. **Nuova run** → scegli il personaggio → parte un `RunEngine` con un seme casuale → `RunView`.
-3. Scegli una tappa: riposo (cura) e tesoro (reliquia) si risolvono subito; combattimento/elite/boss mostrano i nemici.
-4. **Inizia battaglia** → la run crea il `BattleEngine` (personaggio + reliquie + talenti + abilità + HP attuali) → `GameView` → `GameViewController` crea griglia e scena.
-5. Prima di muovere puoi toccare un **pulsante abilità** (se è pronta).
-6. Tocchi una sfera e la trascini → `GameScene` chiede a `BoardEngine` di scambiare.
-7. Lasci (o scade il tempo) → `GameScene` cerca combo, le fa esplodere, fa cadere le sfere, ripete finché non ci sono più combo.
-8. `TestBattleScene` riceve le combo → `BattleEngine.resolveTurn` calcola danni (con i bonus), cure, scudi, attacchi nemici.
-9. La scena anima il risultato. Se la battaglia continua, si torna al punto 5.
-10. A fine battaglia tocchi lo schermo → la run registra il risultato (gli HP persi restano) → `RunView`: scegli una ricompensa e si passa al piano successivo.
-11. Sconfitta o boss battuto → schermata di fine run → **Torna al menu**.
+1. **Nuova run** → scegli l'eroe → `RunEngine` genera la mappa con un seme casuale.
+2. Sulla mappa tocchi uno dei nodi illuminati del piano 1.
+3. **Combattimento**: vedi i nemici e i loro tratti → **Combatti!** → battaglia.
+4. In battaglia: (opzionale) abilità → trascini le sfere → combo → danni (con tutti i bonus/malus) → i nemici attaccano.
+5. Vinci → oro + **bottino** (reliquia / cura / oro). Gli HP persi restano.
+6. Torni alla mappa, scegli il ramo successivo: eventi rischiosi, mercanti, accampamenti, elite…
+7. Le reliquie e i livelli cambiano **come** conviene muovere le sfere (più combo? match da 4? tanti colori? HP bassi?).
+8. Piano 12: accampamento. Poi il **boss**. Vinci o perdi → schermata finale → menu.
 
 ---
 
@@ -595,53 +424,47 @@ Sono stati tolti da `GameScene.swift` per renderlo più corto e leggibile; non d
 | Voglio... | File | Cosa cambiare |
 |---|---|---|
 | Tempo per muovere di default | `GameProgress.swift` | `GameSettings.moveDuration` |
-| Range del tempo nelle Opzioni | `OptionsView.swift` | `in: 3...10` |
 | Griglia più grande | `GameViewController.swift` | `BoardEngine(cols: 6, rows: 5)` |
-| Bonus combo diversi | `BattleEngine.swift` | `CombatRules` (valori di default) |
-| Nuova reliquia | `Relic.swift` | una riga in `Relic.standard` |
-| Nuovo tipo di bonus | `Modifier.swift` + `ModifierResolver.swift` | nuovo `case` + dove applicarlo |
-| Nuovo personaggio | `CharacterCatalog.swift` | una voce in `CharacterDefinition.standard` |
-| Forza dell'affinità elementale | `Character.swift` | `affinityMultiplier` |
-| Nuovo effetto di abilità | `Ability.swift` + `BattleEngine.useAbility` | nuovo `case` in `AbilityEffect` + cosa fa |
-| Difficoltà della run | `RunRules.swift` | `hpGrowthPerFloor`, `attackGrowthPerFloor`, `floorCount` |
-| Nemici della run | `GameCatalog.swift` | `EnemyTemplate.standard` |
-| Regole completamente diverse | nuovo tipo che implementa `RunRules` | passarlo a `RunEngine(..., rules:)` |
-| Testi/descrizioni in italiano | `RunTexts.swift` | `title`, `summary`, `displayText` |
-| Icone dei nodi della run | `RunTexts.swift` | `NodeKind.symbol` (nomi SF Symbols) |
-| Colori delle sfere | `OrbArtwork.swift` | `baseColor` / `rimColor` |
-| Forza della vibrazione combo | `ComboHaptics.swift` | `intensity` in `play(combo:)` |
-| Icona dell'app | `Assets.xcassets/AppIcon.appiconset/` | `AppIcon.png` |
+| Nuova reliquia | `Relic.swift` | una voce in `Relic.standard` (+ icona in `RunVisuals.swift`) |
+| Nuovo tipo di bonus o condizione | `Modifier.swift` + `ModifierResolver.swift` + `RunTexts.swift` | nuovo `case` + dove applicarlo + testo |
+| Nuovo eroe | `CharacterCatalog.swift` | una voce (+ simbolo in `RunVisuals.swift`) |
+| Nuovo nemico | `GameCatalog.swift` | un `EnemyTemplate` (+ aspetto in `EnemyArtwork.look`) |
+| Nuovo tratto nemico | `Enemy.swift` + `RunTexts.swift` | nuovo `case` in `EnemyTrait` + testo |
+| Nuovo evento | `RunEvent.swift` | una voce in `RunEvent.standard` |
+| Lunghezza della mappa / percorsi | `RunRules.swift` | `rows`, `columns`, `paths` |
+| Frequenza delle stanze | `RunRules.swift` | i pesi in `kind(row:parents:rng:)` |
+| Difficoltà | `RunRules.swift` | `hpGrowthPerRow`, `attackGrowthPerRow`, statistiche in `GameCatalog.swift` |
+| Prezzi del mercante / oro | `RunRules.swift` | `shop(...)`, `gold(after:)` |
+| Colori e sagome delle sfere | `OrbArtwork.swift` | `baseColor` / `lightColor` / `rimColor`, `outline(for:)` |
+| Colori dell'interfaccia | `RunVisuals.swift` | `Theme` |
+| Icona dell'app | `Assets.xcassets/AppIcon.appiconset/` | `AppIcon.png` (1024×1024) |
 
 ---
 
 ## 7. Come provarlo
 
-- **Logica (anche su Linux)**: dalla cartella `Packages/PADRoguelikeCore` esegui `swift test`. I test sono in `Tests/PADRoguelikeCoreTests/` (`RoguelikeSystemsTests.swift` copre reliquie, abilità, personaggi e run).
-- **App completa**: serve un Mac con Xcode. Genera il progetto con `xcodegen` (legge `project.yml`), aprilo in Xcode e avvialo su simulatore o iPhone.
-- **Senza Mac**: la CI in `.github/workflows/` (`ios-build.yml` per compilare, `ios-share.yml` per provare l'app in un simulatore remoto) esegue `xcodegen` e compila su un Mac di GitHub.
+- **Logica (anche su Linux)**: dalla cartella `Packages/PADRoguelikeCore` esegui `swift test`. `RoguelikeSystemsTests.swift` copre condizioni, rischio/ricompensa, tratti nemici, abilità, eroi, tutte le stanze, eventi, salvataggio e la forma della mappa (25 semi diversi).
+- **App completa**: serve un Mac con Xcode (`xcodegen` + Xcode), oppure la CI in `.github/workflows/` (`ios-build.yml` compila, `ios-share.yml` apre un simulatore remoto).
 
 ---
 
 ## 8. Glossario rapido
 
-- **Orb / sfera**: la pallina colorata sulla griglia.
-- **Combo / cluster**: gruppo di 3+ sfere uguali collegate.
-- **Cascata / skyfall**: nuove sfere che cadono dall'alto e possono creare altre combo "gratis".
-- **Engine**: classe con la logica pura (`BoardEngine`, `BattleEngine`).
-- **Scene / Node**: oggetti grafici di SpriteKit.
-- **Haptics**: vibrazioni del telefono.
-- **Safe area**: zona dello schermo non coperta da notch, angoli arrotondati, barra home.
-- **SwiftUI**: sistema di Apple per costruire interfacce (usato per i menu).
-- **UserDefaults**: archivio semplice dove l'app salva dati che restano dopo la chiusura.
-- **Talento**: bonus passivo del personaggio, si sblocca a un certo livello (1–5).
-- **Asset catalog (`.xcassets`)**: cartella delle immagini dell'app, icona compresa.
-- **Run**: una partita roguelike completa, dal primo piano al boss (o alla sconfitta).
-- **Nodo / piano (floor)**: una tappa della run / un "livello" della mappa.
-- **Reliquia**: oggetto raccolto nella run che dà bonus permanenti fino a fine run.
-- **Modificatore**: un singolo bonus tipizzato (es. "fuoco ×1.5").
-- **Resolver**: il pezzo di codice che applica tutti i modificatori in un ordine fisso.
-- **Buff**: bonus temporaneo (dura qualche turno).
-- **Cooldown / cariche**: turni di attesa tra due usi / numero massimo di usi.
-- **Seme (seed)**: numero da cui parte il generatore casuale; stesso seme = stessa sequenza.
-- **Codable**: "si può salvare e ricaricare" (es. in JSON).
-- **Hook**: punto previsto per inserire regole personalizzate.
+- **Orb / sfera / gemma**: la pallina colorata sulla griglia.
+- **Combo / match / cluster**: gruppo di 3+ sfere uguali collegate.
+- **Cascata / skyfall**: sfere nuove che cadono e creano altre combo.
+- **Run**: una partita completa, dal piano 1 al boss.
+- **Nodo / stanza / piano**: una tappa della mappa / il suo tipo / la sua altezza.
+- **Elite**: nemico più forte, ricompense migliori.
+- **Reliquia**: oggetto con bonus (e spesso un malus) fino a fine run.
+- **Modificatore**: un singolo bonus o malus tipizzato. **Condizione**: "quando" scatta.
+- **Rischio/ricompensa**: effetto forte con un prezzo (HP, tempo, difesa).
+- **Tratto**: regola speciale di un nemico (scudo combo, rabbia, rigenera, assorbe, armatura).
+- **Affinità**: bonus ×1.5 dell'eroe per il proprio elemento.
+- **Talento**: bonus passivo dell'eroe, si sblocca a un certo livello.
+- **Cooldown / cariche**: turni di attesa tra due usi / usi massimi per battaglia.
+- **Seme (seed)**: numero da cui parte la casualità; stesso seme = stessa run.
+- **Codable / JSON**: formato con cui la run viene salvata.
+- **Core Graphics**: la libreria di Apple per disegnare (usata per gemme e mostri).
+- **SwiftUI / SpriteKit**: interfaccia (menu, mappa) / motore 2D (battaglia).
+- **Hook**: punto previsto per inserire regole personalizzate (es. `RunRules`).

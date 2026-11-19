@@ -39,7 +39,6 @@ class GameScene: SKScene {
         static let dragAlpha: CGFloat = 0.85
         /// Finger must be within this fraction of the target cell's half-size from its centre to swap.
         static let swapZone: CGFloat = 0.75
-        static let orbRadiusRatio: CGFloat = 0.42
     }
 
     private static let swapActionKey = "swap"
@@ -94,8 +93,6 @@ class GameScene: SKScene {
     override func didMove(to view: SKView) {
         super.didMove(to: view)
         comboHaptics.prepare()
-        // Textures need a view; rebuild if layout arrived before presentation.
-        if layout != nil, orbTextures.isEmpty { rebuildBoard() }
     }
 
     // MARK: - Layout
@@ -234,7 +231,6 @@ class GameScene: SKScene {
     // MARK: - Geometry
 
     private var cellSize: CGFloat { layout?.cellSize ?? 0 }
-    private var orbRadius: CGFloat { cellSize * Tuning.orbRadiusRatio }
 
     /// Centre of a cell in board-local coordinates. Rows >= `engine.rows` are valid for skyfall spawns.
     private func center(of pos: GridPosition) -> CGPoint {
@@ -509,29 +505,23 @@ class GameScene: SKScene {
 
     // MARK: - Orb nodes
 
+    /// Gems are drawn with a glow margin, so the texture is almost a full cell.
+    private var orbSide: CGFloat { cellSize * 0.98 }
+
     private func makeOrbTextures() -> [OrbType: SKTexture] {
-        guard let view, orbRadius > 0 else { return [:] }
-        let r = orbRadius
-        let crop = CGRect(x: -r - 2, y: -r - 2, width: (r + 2) * 2, height: (r + 2) * 2)
+        guard orbSide > 0 else { return [:] }
+        let scale = view?.contentScaleFactor ?? 3
         var textures: [OrbType: SKTexture] = [:]
         for type in OrbType.allCases {
-            if let texture = view.texture(from: OrbArtwork.node(for: type, radius: r), crop: crop) {
-                textures[type] = texture
-            }
+            textures[type] = OrbArtwork.texture(for: type, diameter: orbSide, scale: scale)
         }
         return textures
     }
 
-    /// Uses a pre-rasterized texture (one draw call per orb); falls back to live shapes if unavailable.
     private func makeOrbNode(_ orb: Orb) -> SKSpriteNode {
-        let side = (orbRadius + 2) * 2
-        let node: SKSpriteNode
-        if let texture = orbTextures[orb.type] {
-            node = SKSpriteNode(texture: texture, size: CGSize(width: side, height: side))
-        } else {
-            node = SKSpriteNode(color: .clear, size: CGSize(width: side, height: side))
-            node.addChild(OrbArtwork.node(for: orb.type, radius: orbRadius))
-        }
+        let texture = orbTextures[orb.type]
+            ?? OrbArtwork.texture(for: orb.type, diameter: orbSide, scale: view?.contentScaleFactor ?? 3)
+        let node = SKSpriteNode(texture: texture, size: CGSize(width: orbSide, height: orbSide))
         node.zPosition = Z.orbs
         return node
     }

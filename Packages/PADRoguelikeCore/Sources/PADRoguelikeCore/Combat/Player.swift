@@ -32,6 +32,13 @@ public struct Player: Equatable, Sendable {
         currentHP += gained
         return gained
     }
+
+    /// Self-inflicted HP loss that never defeats the player. Returns the HP actually lost.
+    mutating func drain(_ amount: Int) -> Int {
+        let lost = min(max(0, currentHP - 1), max(0, amount))
+        currentHP -= lost
+        return lost
+    }
 }
 
 public extension Player {

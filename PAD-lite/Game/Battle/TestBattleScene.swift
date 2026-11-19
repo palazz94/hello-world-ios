@@ -17,6 +17,7 @@ final class TestBattleScene: GameScene {
     private let battle: BattleEngine
 
     private let enemyLayer = SKNode()
+    private var backdrop: SKSpriteNode?
     private var enemyNodes: [EnemyNode] = []
     private let abilityLayer = SKNode()
     private var abilityNodes: [AbilityButtonNode] = []
@@ -54,6 +55,14 @@ final class TestBattleScene: GameScene {
     // MARK: - Layout
 
     override func boardLayoutDidChange(_ layout: BoardLayout, boardFrame: CGRect, hudTop: CGFloat) {
+        backdrop?.removeFromParent()
+        let background = SKSpriteNode(texture: BackdropArtwork.texture(size: size, scale: view?.contentScaleFactor ?? 3),
+                                      size: size)
+        background.anchorPoint = .zero
+        background.zPosition = -100
+        addChild(background)
+        backdrop = background
+
         let top = size.height - layout.topInset - 8
         let area = CGRect(x: boardFrame.minX, y: hudTop, width: boardFrame.width, height: max(0, top - hudTop))
 
@@ -153,8 +162,7 @@ final class TestBattleScene: GameScene {
     private func playAbility(_ report: AbilityReport) async {
         if report.boardRefreshed || !report.conversions.isEmpty { reloadOrbs() }
         for attack in report.attacks {
-            enemyNodes[safe: attack.targetIndex]?.showHit(damage: attack.damage,
-                                                          color: attack.element.orbType.baseColor)
+            show(attack)
             await wait(Timing.playerHit)
         }
         if report.healed > 0 {
@@ -181,13 +189,17 @@ final class TestBattleScene: GameScene {
 
     private func play(_ report: TurnReport) async {
         for attack in report.playerAttacks {
-            enemyNodes[safe: attack.targetIndex]?.showHit(damage: attack.damage,
-                                                          color: attack.element.orbType.baseColor)
+            show(attack)
             await wait(Timing.playerHit)
         }
 
         if report.healed > 0 {
             showPlayerChange(+report.healed)
+            await wait(Timing.heal)
+        }
+
+        if report.selfDamage > 0 {
+            showPlayerChange(-report.selfDamage)
             await wait(Timing.heal)
         }
 
@@ -197,7 +209,13 @@ final class TestBattleScene: GameScene {
             await wait(Timing.beforeEnemyPhase)
             for hit in report.enemyAttacks {
                 enemyNodes[safe: hit.enemyIndex]?.playAttack()
-                showPlayerChange(-hit.damage)
+                if hit.damage > 0 {
+                    showPlayerChange(-hit.damage)
+                } else if let playerBar {
+                    FloatingText.spawn("SCUDO", color: UIColor(red: 0.6, green: 0.85, blue: 1, alpha: 1),
+                                       fontSize: max(18, playerBar.calculateAccumulatedFrame().height * 1.2),
+                                       at: playerBar.position, in: self)
+                }
                 if hapticsEnabled { damageFeedback.impactOccurred() }
                 await wait(Timing.enemyHit)
             }
@@ -208,6 +226,15 @@ final class TestBattleScene: GameScene {
         switch report.outcome {
         case .ongoing: isInputLocked = false
         case .victory, .defeat: showOutcome(report.outcome)
+        }
+    }
+
+    private func show(_ attack: PlayerAttack) {
+        guard let node = enemyNodes[safe: attack.targetIndex] else { return }
+        switch attack.block {
+        case .absorbed: node.showAbsorb(healed: attack.damage)
+        case .comboShield: node.showImmune()
+        case nil: node.showHit(damage: attack.damage, color: attack.element.orbType.baseColor)
         }
     }
 

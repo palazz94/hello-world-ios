@@ -25,17 +25,23 @@ public struct CharacterDefinition: Hashable, Codable, Sendable, Identifiable {
     public let id: String
     public let name: String
     public let element: Element
+    public let title: String
+    /// One sentence on how the hero wants to be played.
+    public let playstyle: String
     public let baseHP: Int
     public let baseAttack: Int
     public let baseRecovery: Int
     public let talents: [PassiveTalent]
     public let abilities: [Ability]
 
-    public init(id: String, name: String, element: Element, baseHP: Int, baseAttack: Int, baseRecovery: Int,
+    public init(id: String, name: String, element: Element, title: String = "", playstyle: String = "",
+                baseHP: Int, baseAttack: Int, baseRecovery: Int,
                 talents: [PassiveTalent] = [], abilities: [Ability] = []) {
         self.id = id
         self.name = name
         self.element = element
+        self.title = title
+        self.playstyle = playstyle
         self.baseHP = baseHP
         self.baseAttack = baseAttack
         self.baseRecovery = baseRecovery

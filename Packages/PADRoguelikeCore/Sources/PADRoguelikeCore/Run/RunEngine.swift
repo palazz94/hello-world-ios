@@ -1,10 +1,10 @@
 import Foundation
 
 public enum RunError: Error, Equatable, Sendable {
-    case wrongPhase, invalidChoice
+    case wrongPhase, invalidChoice, notEnoughGold
 }
 
-/// Drives a run: pick a node per floor, fight, pick a reward, repeat until the boss falls or the hero does.
+/// Drives a run: walk the map one node at a time (fights, events, shops, rest sites, treasure) up to the boss.
 /// All state lives in `state`, so a run can be saved and restored at any phase.
 public final class RunEngine {
     public private(set) var state: RunState
@@ -18,8 +18,8 @@ public final class RunEngine {
             preconditionFailure("Unknown character \(characterID)")
         }
         var rng = SeededRandom(seed: seed)
-        let choices = rules.nodeChoices(floor: 0, rng: &rng)
-        state = RunState(seed: seed, rng: rng, phase: .choosingNode(choices), characterID: characterID)
+        let map = rules.makeMap(rng: &rng)
+        state = RunState(seed: seed, rng: rng, map: map, characterID: characterID)
         self.character = character
         self.rules = rules
         self.catalog = catalog
@@ -37,36 +37,59 @@ public final class RunEngine {
 
     // MARK: - Derived
 
+    public var map: RunMap { state.map }
+    public var currentNode: MapNode? { state.currentNodeID.flatMap(map.node) }
+
+    /// Nodes that can be entered now: the whole first row at the start, then the current node's successors.
+    public var reachableNodes: [MapNode] {
+        guard state.phase == .map else { return [] }
+        guard let currentNode else { return map.nodes(inRow: 0) }
+        return currentNode.next.compactMap(map.node)
+    }
+
+    public var currentEvent: RunEvent? {
+        if case let .event(id) = state.phase { catalog.event(id: id) } else { nil }
+    }
+
     public var relics: [Relic] { state.relicIDs.compactMap(catalog.relic(id:)) }
     /// Relics first, then affinity and talents; the resolver result does not depend on this order.
     public var modifierSources: [ModifierSource] {
         relics.map(\.source) + character.modifierSources(at: state.characterLevel)
     }
 
+    public var resolver: ModifierResolver { ModifierResolver(sources: modifierSources) }
+
     public func makePlayer() -> Player {
-        character.makePlayer(level: state.characterLevel, resolver: ModifierResolver(sources: modifierSources),
-                             missingHP: state.missingHP)
+        character.makePlayer(level: state.characterLevel, resolver: resolver, missingHP: state.missingHP)
     }
 
-    // MARK: - Actions
+    // MARK: - Map
 
-    public func chooseNode(_ index: Int) throws(RunError) {
-        guard case let .choosingNode(choices) = state.phase else { throw .wrongPhase }
-        guard choices.indices.contains(index) else { throw .invalidChoice }
-        let kind = choices[index]
-        state.visited.append(kind)
+    public func travel(to nodeID: Int) throws(RunError) {
+        guard state.phase == .map else { throw .wrongPhase }
+        guard let node = reachableNodes.first(where: { $0.id == nodeID }) else { throw .invalidChoice }
+        state.currentNodeID = node.id
+        state.path.append(node.id)
 
-        switch kind {
+        switch node.kind {
         case .combat, .elite, .boss:
-            let floor = state.floor
-            state.phase = .inCombat(withRNG { rules.encounter(floor: floor, kind: kind, catalog: catalog, rng: &$0) })
+            startFight(node.kind)
         case .rest:
-            heal(fraction: rules.restHealFraction)
-            advance()
+            state.phase = .resting
         case .treasure:
             offerRewards(after: .treasure)
+        case .shop:
+            let snapshot = state
+            state.phase = .shop(withRNG { rules.shop(state: snapshot, catalog: catalog, rng: &$0) })
+        case .event:
+            let snapshot = state
+            let event = withRNG { rules.event(state: snapshot, catalog: catalog, rng: &$0) }
+            state.seenEventIDs.append(event.id)
+            state.phase = .event(id: event.id)
         }
     }
+
+    // MARK: - Fights
 
     public func makeBattle() throws(RunError) -> BattleEngine {
         guard case let .inCombat(encounter) = state.phase else { throw .wrongPhase }
@@ -74,7 +97,7 @@ public final class RunEngine {
                             modifiers: modifierSources, abilities: character.abilityStates)
     }
 
-    /// HP carries over; a victory leads to rewards, or wins the run after the boss.
+    /// HP carries over; a victory grants gold and rewards, or wins the run after the boss.
     public func finishBattle(_ battle: BattleEngine) throws(RunError) {
         guard case let .inCombat(encounter) = state.phase else { throw .wrongPhase }
         switch battle.outcome {
@@ -85,9 +108,10 @@ public final class RunEngine {
             state.phase = .lost
         case .victory:
             state.missingHP = battle.player.maxHP - battle.player.currentHP
-            if encounter.kind == .boss || state.floor >= rules.floorCount - 1 {
+            if encounter.kind == .boss {
                 state.phase = .won
             } else {
+                state.gold += withRNG { rules.gold(after: encounter.kind, rng: &$0) }
                 offerRewards(after: encounter.kind)
             }
         }
@@ -100,20 +124,89 @@ public final class RunEngine {
             guard choices.indices.contains(index) else { throw .invalidChoice }
             apply(choices[index])
         }
-        advance()
+        state.phase = .map
+    }
+
+    // MARK: - Rooms
+
+    public func chooseEventOption(_ index: Int) throws(RunError) {
+        guard let event = currentEvent else { throw .wrongPhase }
+        guard event.options.indices.contains(index) else { throw .invalidChoice }
+        let option = event.options[index]
+        guard state.gold >= option.goldCost else { throw .notEnoughGold }
+
+        for effect in option.effects {
+            switch effect {
+            case let .loseHP(fraction):
+                let maxHP = makePlayer().maxHP
+                state.missingHP = min(maxHP - 1, state.missingHP + Int((Double(maxHP) * fraction).rounded()))
+            case let .heal(fraction):
+                heal(fraction: fraction)
+            case let .gainGold(amount):
+                state.gold += amount
+            case let .loseGold(amount):
+                state.gold = max(0, state.gold - amount)
+            case let .gainRelic(rarity):
+                grantRandomRelic(minRarity: rarity)
+            case .levelUp:
+                levelUp()
+            case let .fight(kind):
+                startFight(kind == .elite ? .elite : .combat)
+                return
+            }
+        }
+        state.phase = .map
+    }
+
+    public func buy(_ index: Int) throws(RunError) {
+        guard case var .shop(items) = state.phase else { throw .wrongPhase }
+        guard items.indices.contains(index), !items[index].sold else { throw .invalidChoice }
+        guard state.gold >= items[index].price else { throw .notEnoughGold }
+        state.gold -= items[index].price
+        apply(items[index].reward)
+        items[index].sold = true
+        state.phase = .shop(items)
+    }
+
+    public func leaveShop() throws(RunError) {
+        guard case .shop = state.phase else { throw .wrongPhase }
+        state.phase = .map
+    }
+
+    public func rest(_ option: RestOption) throws(RunError) {
+        guard state.phase == .resting else { throw .wrongPhase }
+        switch option {
+        case .heal:
+            heal(fraction: rules.restHealFraction)
+        case .train:
+            guard state.characterLevel < CharacterDefinition.maxLevel else { throw .invalidChoice }
+            levelUp()
+        }
+        state.phase = .map
     }
 
     // MARK: - Private
+
+    private func startFight(_ kind: NodeKind) {
+        let row = max(state.row, 0)
+        state.phase = .inCombat(withRNG { rules.encounter(row: row, kind: kind, catalog: catalog, rng: &$0) })
+    }
 
     private func apply(_ reward: Reward) {
         switch reward {
         case let .relic(id):
             if !state.relicIDs.contains(id) { state.relicIDs.append(id) }
         case .levelUp:
-            state.characterLevel = min(state.characterLevel + 1, CharacterDefinition.maxLevel)
+            levelUp()
         case let .heal(fraction):
             heal(fraction: fraction)
+        case let .gold(amount):
+            state.gold += amount
         }
+    }
+
+    private func levelUp() {
+        state.characterLevel = min(state.characterLevel + 1, CharacterDefinition.maxLevel)
     }
 
     private func heal(fraction: Double) {
@@ -121,24 +214,23 @@ public final class RunEngine {
         state.missingHP = max(0, state.missingHP - amount)
     }
 
-    private func offerRewards(after kind: NodeKind) {
-        let snapshot = state
-        let rewards = withRNG { rules.rewards(after: kind, floor: snapshot.floor, state: snapshot, catalog: catalog, rng: &$0) }
-        if rewards.isEmpty {
-            advance()
-        } else {
-            state.phase = .choosingReward(rewards)
+    /// Falls back to 50 gold when every relic is owned.
+    private func grantRandomRelic(minRarity: Rarity) {
+        let unowned = catalog.relics.filter { !state.relicIDs.contains($0.id) }
+        let preferred = unowned.filter { $0.rarity >= minRarity }
+        let pool = preferred.isEmpty ? unowned : preferred
+        guard !pool.isEmpty else {
+            state.gold += 50
+            return
         }
+        let relic = withRNG { pool[Int.random(in: pool.indices, using: &$0)] }
+        state.relicIDs.append(relic.id)
     }
 
-    private func advance() {
-        state.floor += 1
-        if state.floor >= rules.floorCount {
-            state.phase = .won
-        } else {
-            let floor = state.floor
-            state.phase = .choosingNode(withRNG { rules.nodeChoices(floor: floor, rng: &$0) })
-        }
+    private func offerRewards(after kind: NodeKind) {
+        let snapshot = state
+        let rewards = withRNG { rules.rewards(after: kind, state: snapshot, catalog: catalog, rng: &$0) }
+        state.phase = rewards.isEmpty ? .map : .choosingReward(rewards)
     }
 
     /// Draws from the saved generator without overlapping access to `state`.

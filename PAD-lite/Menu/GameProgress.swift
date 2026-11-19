@@ -14,7 +14,7 @@ final class GameProgress {
     private enum Key {
         static let moveDuration = "moveDuration"
         static let hapticsEnabled = "hapticsEnabled"
-        static let runState = "runState"
+        static let runState = "runState.v2"
     }
 
     var settings: GameSettings {
@@ -52,29 +52,30 @@ final class GameProgress {
         sync()
     }
 
-    func chooseNode(_ index: Int) {
-        try? run?.chooseNode(index)
-        sync()
-    }
+    func travel(to nodeID: Int) { perform { try $0.travel(to: nodeID) } }
 
     /// A fresh battle for the current encounter; leaving it and coming back restarts the fight.
     func makeBattle() -> BattleEngine? {
         try? run?.makeBattle()
     }
 
-    func finishBattle(_ battle: BattleEngine) {
-        try? run?.finishBattle(battle)
-        sync()
-    }
-
+    func finishBattle(_ battle: BattleEngine) { perform { try $0.finishBattle(battle) } }
     /// `nil` skips the reward.
-    func chooseReward(_ index: Int?) {
-        try? run?.chooseReward(index)
-        sync()
-    }
+    func chooseReward(_ index: Int?) { perform { try $0.chooseReward(index) } }
+    func chooseEventOption(_ index: Int) { perform { try $0.chooseEventOption(index) } }
+    func buy(_ index: Int) { perform { try $0.buy(index) } }
+    func leaveShop() { perform { try $0.leaveShop() } }
+    func rest(_ option: RestOption) { perform { try $0.rest(option) } }
 
     func endRun() {
         run = nil
+        sync()
+    }
+
+    /// Invalid actions (wrong phase, not enough gold) are ignored: the UI only offers valid ones.
+    private func perform(_ action: (RunEngine) throws -> Void) {
+        guard let run else { return }
+        try? action(run)
         sync()
     }
 

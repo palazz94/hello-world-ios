@@ -67,14 +67,14 @@ final class HPBarNode: SKNode {
     }
 }
 
-/// One enemy slot: body coloured by element, name, HP bar, attack countdown and target marker.
+/// One enemy slot: illustrated portrait, name, HP bar, attack countdown, traits and target marker.
 @MainActor
 final class EnemyNode: SKNode {
     let radius: CGFloat
-    private let body: SKShapeNode
+    private let body: SKSpriteNode
     private let targetRing: SKShapeNode
     private let nameLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
-    private let elementLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+    private let traitsLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
     private let countdownLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
     private let hpBar: HPBarNode
 
@@ -83,43 +83,50 @@ final class EnemyNode: SKNode {
         let fontSize = max(10, radius * 0.3)
         let barHeight = max(10, fontSize * 1.1)
 
-        body = SKShapeNode(circleOfRadius: radius)
-        body.fillColor = enemy.element.orbType.baseColor
-        body.strokeColor = enemy.element.orbType.rimColor
-        body.lineWidth = max(2, radius * 0.08)
+        let side = radius * 2.6
+        body = SKSpriteNode(texture: EnemyArtwork.texture(name: enemy.name, element: enemy.element, side: side,
+                                                          scale: UITraitCollection.current.displayScale),
+                            size: CGSize(width: side, height: side))
 
-        targetRing = SKShapeNode(circleOfRadius: radius * 1.18)
-        targetRing.fillColor = .clear
+        targetRing = SKShapeNode(ellipseOf: CGSize(width: radius * 2.3, height: radius * 0.7))
+        targetRing.fillColor = UIColor(red: 1, green: 0.85, blue: 0.3, alpha: 0.15)
         targetRing.strokeColor = UIColor(red: 1, green: 0.85, blue: 0.3, alpha: 1)
         targetRing.lineWidth = 3
+        targetRing.position = CGPoint(x: 0, y: -radius * 0.95)
         targetRing.isHidden = true
 
         hpBar = HPBarNode(size: CGSize(width: width * 0.85, height: barHeight),
                           color: UIColor(red: 0.92, green: 0.25, blue: 0.25, alpha: 1))
         super.init()
 
-        for label in [nameLabel, elementLabel, countdownLabel] {
+        for label in [nameLabel, traitsLabel, countdownLabel] {
             label.fontColor = .white
             label.horizontalAlignmentMode = .center
             label.verticalAlignmentMode = .center
             label.fontSize = fontSize
         }
         nameLabel.text = enemy.name
-        nameLabel.position = CGPoint(x: 0, y: radius + fontSize * 0.9)
-        elementLabel.text = enemy.element.displayName
-        elementLabel.fontSize = radius * 0.32
-        hpBar.position = CGPoint(x: 0, y: -radius - 8 - barHeight / 2)
+        nameLabel.position = CGPoint(x: 0, y: radius * 1.25 + fontSize * 0.6)
+        hpBar.position = CGPoint(x: 0, y: -radius * 1.25 - barHeight / 2)
         countdownLabel.position = CGPoint(x: 0, y: hpBar.position.y - barHeight / 2 - fontSize * 0.9)
+        traitsLabel.text = enemy.traits.map(\.title).joined(separator: " · ")
+        traitsLabel.fontSize = fontSize * 0.85
+        traitsLabel.fontColor = UIColor(red: 1, green: 0.7, blue: 0.35, alpha: 1)
+        traitsLabel.position = CGPoint(x: 0, y: countdownLabel.position.y - fontSize * 1.1)
 
         let pulse = SKAction.sequence([.fadeAlpha(to: 0.4, duration: 0.5), .fadeAlpha(to: 1, duration: 0.5)])
         targetRing.run(.repeatForever(pulse))
+        let bob = SKAction.sequence([.moveBy(x: 0, y: radius * 0.06, duration: 0.9),
+                                     .moveBy(x: 0, y: -radius * 0.06, duration: 0.9)])
+        bob.timingMode = .easeInEaseOut
+        body.run(.repeatForever(bob), withKey: "idle")
 
         addChild(targetRing)
         addChild(body)
-        body.addChild(elementLabel)
         addChild(nameLabel)
         addChild(hpBar)
         addChild(countdownLabel)
+        addChild(traitsLabel)
 
         update(with: enemy, isActive: true, isTarget: false, animated: false)
     }
@@ -141,7 +148,7 @@ final class EnemyNode: SKNode {
             countdownLabel.fontColor = .lightGray
             targetAlpha = 0.5
         } else {
-            countdownLabel.text = "Attacco: \(enemy.turnCountdown)"
+            countdownLabel.text = "Attacco: \(enemy.turnCountdown) · \(enemy.currentAttack)"
             countdownLabel.fontColor = enemy.turnCountdown <= 1
                 ? UIColor(red: 1, green: 0.4, blue: 0.35, alpha: 1)
                 : .white
@@ -167,7 +174,20 @@ final class EnemyNode: SKNode {
             .moveBy(x: -radius * 0.24, y: 0, duration: 0.06),
             .moveBy(x: radius * 0.12, y: 0, duration: 0.03),
         ]))
+        body.run(.sequence([.colorize(with: .white, colorBlendFactor: 0.7, duration: 0.03),
+                            .colorize(withColorBlendFactor: 0, duration: 0.15)]))
         FloatingText.spawn("-\(damage)", color: color, fontSize: radius * 0.5,
+                           at: CGPoint(x: 0, y: radius * 0.3), in: self)
+    }
+
+    func showAbsorb(healed: Int) {
+        hpBar.set(current: hpBar.current + healed, maximum: hpBar.maximum, animated: true)
+        FloatingText.spawn("ASSORBE +\(healed)", color: UIColor(red: 0.5, green: 1, blue: 0.6, alpha: 1),
+                           fontSize: radius * 0.38, at: CGPoint(x: 0, y: radius * 0.3), in: self)
+    }
+
+    func showImmune() {
+        FloatingText.spawn("IMMUNE", color: UIColor(white: 0.85, alpha: 1), fontSize: radius * 0.4,
                            at: CGPoint(x: 0, y: radius * 0.3), in: self)
     }
 
