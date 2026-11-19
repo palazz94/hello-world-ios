@@ -1,6 +1,6 @@
 import Foundation
 
-public enum OrbType: Int, CaseIterable, Sendable {
+public enum OrbType: Int, CaseIterable, Codable, Sendable {
     case fire, water, wood, light, dark, heal
 }
 
@@ -61,4 +61,10 @@ public struct GravityResult: Sendable {
     public let spawns: [OrbSpawn]
 
     public var isEmpty: Bool { falls.isEmpty && spawns.isEmpty }
+}
+
+public struct OrbConversion: Sendable {
+    public let position: GridPosition
+    public let oldOrbID: Int
+    public let orb: Orb
 }

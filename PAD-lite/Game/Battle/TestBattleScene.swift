@@ -2,8 +2,8 @@ import PADRoguelikeCore
 import SpriteKit
 import UIKit
 
-/// Test battle: the board from `GameScene` at the bottom, 3 enemies and the player HP bar on top.
-/// Turn loop: move orbs -> combos -> player attacks/heals -> enemy countdowns/attacks -> victory/defeat check.
+/// Battle scene: the board from `GameScene` at the bottom; enemies, ability buttons and the player HP bar on top.
+/// Turn loop: (optional abilities) -> move orbs -> combos -> player attacks/heals -> enemy countdowns/attacks -> victory/defeat check.
 @MainActor
 final class TestBattleScene: GameScene {
 
@@ -18,6 +18,8 @@ final class TestBattleScene: GameScene {
 
     private let enemyLayer = SKNode()
     private var enemyNodes: [EnemyNode] = []
+    private let abilityLayer = SKNode()
+    private var abilityNodes: [AbilityButtonNode] = []
     private var playerBar: HPBarNode?
     private let turnLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
     private var outcomeOverlay: SKNode?
@@ -35,6 +37,9 @@ final class TestBattleScene: GameScene {
 
         enemyLayer.zPosition = 300
         addChild(enemyLayer)
+
+        abilityLayer.zPosition = 300
+        addChild(abilityLayer)
 
         turnLabel.fontColor = UIColor.white.withAlphaComponent(0.7)
         turnLabel.horizontalAlignmentMode = .left
@@ -64,7 +69,21 @@ final class TestBattleScene: GameScene {
         addChild(bar)
         playerBar = bar
 
-        let enemiesBottom = bar.position.y + barHeight / 2 + 12
+        let abilityHeight = max(36, layout.cellSize * 0.7)
+        let abilityGap: CGFloat = 8
+        let abilityCount = CGFloat(battle.abilities.count)
+        let abilityWidth = abilityCount > 0 ? (area.width - abilityGap * (abilityCount - 1)) / abilityCount : 0
+        let abilityY = bar.position.y + barHeight / 2 + 8 + abilityHeight / 2
+        abilityLayer.removeAllChildren()
+        abilityNodes = battle.abilities.enumerated().map { index, ability in
+            let node = AbilityButtonNode(title: ability.ability.name, size: CGSize(width: abilityWidth, height: abilityHeight))
+            node.position = CGPoint(x: area.minX + abilityWidth / 2 + CGFloat(index) * (abilityWidth + abilityGap),
+                                    y: abilityY)
+            abilityLayer.addChild(node)
+            return node
+        }
+
+        let enemiesBottom = (abilityNodes.isEmpty ? bar.position.y + barHeight / 2 : abilityY + abilityHeight / 2) + 12
         let enemiesTop = area.maxY - turnLabel.fontSize * 1.5
         let enemiesHeight = max(0, enemiesTop - enemiesBottom)
         let slotWidth = area.width / CGFloat(battle.enemies.count)
@@ -106,7 +125,48 @@ final class TestBattleScene: GameScene {
             }
             return
         }
+
+        let abilityPoint = touch.location(in: abilityLayer)
+        if let index = abilityNodes.firstIndex(where: { $0.contains(pointInParent: abilityPoint) }) {
+            if state == .idle, !isInputLocked { useAbility(index) }
+            return
+        }
         super.touchesBegan(touches, with: event)
+    }
+
+    // MARK: - Abilities
+
+    private func useAbility(_ index: Int) {
+        let report: AbilityReport
+        do {
+            report = try battle.useAbility(index, board: engine)
+        } catch {
+            return
+        }
+        isInputLocked = true
+        if hapticsEnabled { targetFeedback.selectionChanged() }
+        Task { [weak self] in
+            await self?.playAbility(report)
+        }
+    }
+
+    private func playAbility(_ report: AbilityReport) async {
+        if report.boardRefreshed || !report.conversions.isEmpty { reloadOrbs() }
+        for attack in report.attacks {
+            enemyNodes[safe: attack.targetIndex]?.showHit(damage: attack.damage,
+                                                          color: attack.element.orbType.baseColor)
+            await wait(Timing.playerHit)
+        }
+        if report.healed > 0 {
+            showPlayerChange(+report.healed)
+            await wait(Timing.heal)
+        }
+        refresh(animated: true)
+
+        switch report.outcome {
+        case .ongoing: isInputLocked = false
+        case .victory, .defeat: showOutcome(report.outcome)
+        }
     }
 
     // MARK: - Turn loop
@@ -159,7 +219,10 @@ final class TestBattleScene: GameScene {
                         isTarget: index == target, animated: animated)
         }
         playerBar?.set(current: battle.player.currentHP, maximum: battle.player.maxHP, animated: animated)
-        turnLabel.text = "Turno \(battle.turn + 1)"
+        for (index, node) in abilityNodes.enumerated() where battle.abilities.indices.contains(index) {
+            node.update(with: battle.abilities[index])
+        }
+        turnLabel.text = "Turno \(battle.turn + 1)" + (battle.shield > 0 ? " · Scudo \(battle.shield)" : "")
     }
 
     private func showPlayerChange(_ delta: Int) {

@@ -20,11 +20,10 @@ final class GameViewController: UIViewController {
 
     private var skView: SKView { view as! SKView }
 
-    init(level: Level, player: Player, settings: GameSettings, onBattleEnd: @escaping (BattleOutcome) -> Void) {
+    init(battle: BattleEngine, settings: GameSettings, onBattleEnd: @escaping (BattleOutcome) -> Void) {
         let board = BoardEngine(cols: 6, rows: 5)
         engine = board
-        scene = TestBattleScene(board: board,
-                                battle: BattleEngine(player: player, enemies: level.enemies, mode: level.mode))
+        scene = TestBattleScene(board: board, battle: battle)
         scene.moveDuration = settings.moveDuration
         scene.hapticsEnabled = settings.hapticsEnabled
         scene.onBattleEnd = onBattleEnd
@@ -101,13 +100,12 @@ final class GameViewController: UIViewController {
 
 /// SwiftUI bridge for the `App` lifecycle.
 struct GameView: UIViewControllerRepresentable {
-    let level: Level
-    let player: Player
+    let battle: BattleEngine
     let settings: GameSettings
     let onBattleEnd: (BattleOutcome) -> Void
 
     func makeUIViewController(context: Context) -> GameViewController {
-        GameViewController(level: level, player: player, settings: settings, onBattleEnd: onBattleEnd)
+        GameViewController(battle: battle, settings: settings, onBattleEnd: onBattleEnd)
     }
     func updateUIViewController(_ uiViewController: GameViewController, context: Context) {}
 }

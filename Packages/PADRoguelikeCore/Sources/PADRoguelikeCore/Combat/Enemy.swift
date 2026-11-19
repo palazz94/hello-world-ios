@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Enemy: Identifiable, Equatable, Sendable {
+public struct Enemy: Identifiable, Equatable, Codable, Sendable {
     public let id: Int
     public let name: String
     public let element: Element
@@ -37,6 +37,11 @@ public struct Enemy: Identifiable, Equatable, Sendable {
         guard turnCountdown <= 0 else { return false }
         turnCountdown = turnInterval
         return true
+    }
+
+    mutating func delay(by turns: Int) {
+        guard !isDefeated else { return }
+        turnCountdown += max(0, turns)
     }
 }
 

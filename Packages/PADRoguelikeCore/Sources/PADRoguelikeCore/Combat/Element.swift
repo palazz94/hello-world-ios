@@ -1,6 +1,6 @@
 import Foundation
 
-public enum Element: String, CaseIterable, Sendable {
+public enum Element: String, CaseIterable, Codable, Sendable {
     case fire, water, wood, light, dark
 
     /// Damage multiplier when `self` attacks `defender`: fire > wood > water > fire, light <-> dark.

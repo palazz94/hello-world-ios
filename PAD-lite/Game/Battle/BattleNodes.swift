@@ -179,6 +179,60 @@ final class EnemyNode: SKNode {
     }
 }
 
+/// Ability button: name plus status (ready, cooldown, charges, HP cost).
+@MainActor
+final class AbilityButtonNode: SKNode {
+    private let size: CGSize
+    private let background: SKShapeNode
+    private let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+    private let statusLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+
+    init(title: String, size: CGSize) {
+        self.size = size
+        background = SKShapeNode(rectOf: size, cornerRadius: min(10, size.height / 3))
+        super.init()
+
+        background.lineWidth = 2
+        addChild(background)
+
+        titleLabel.text = title
+        titleLabel.fontSize = min(size.height * 0.32, 16)
+        titleLabel.position = CGPoint(x: 0, y: size.height * 0.15)
+        statusLabel.fontSize = min(size.height * 0.24, 12)
+        statusLabel.position = CGPoint(x: 0, y: -size.height * 0.22)
+        for label in [titleLabel, statusLabel] {
+            label.fontColor = .white
+            label.horizontalAlignmentMode = .center
+            label.verticalAlignmentMode = .center
+            addChild(label)
+        }
+    }
+
+    @available(*, unavailable)
+    required init?(coder aDecoder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    func update(with state: AbilityState) {
+        let gold = UIColor(red: 1, green: 0.85, blue: 0.3, alpha: 1)
+        statusLabel.text = Self.status(of: state)
+        background.fillColor = state.isReady ? gold.withAlphaComponent(0.25) : UIColor.white.withAlphaComponent(0.06)
+        background.strokeColor = state.isReady ? gold : UIColor.white.withAlphaComponent(0.2)
+        alpha = state.isReady ? 1 : 0.6
+    }
+
+    func contains(pointInParent point: CGPoint) -> Bool {
+        abs(point.x - position.x) <= size.width / 2 && abs(point.y - position.y) <= size.height / 2
+    }
+
+    private static func status(of state: AbilityState) -> String {
+        if state.chargesLeft == 0 { return "Esaurita" }
+        if state.cooldownRemaining > 0 { return "Ricarica: \(state.cooldownRemaining)" }
+        var parts = ["Pronta"]
+        if let charges = state.chargesLeft { parts.append("\(charges)x") }
+        if state.ability.hpCost > 0 { parts.append("-\(state.ability.hpCost) HP") }
+        return parts.joined(separator: " · ")
+    }
+}
+
 enum FloatingText {
     @MainActor
     static func spawn(_ text: String, color: UIColor, fontSize: CGFloat, at point: CGPoint, in parent: SKNode) {

@@ -161,6 +161,22 @@ public final class BoardEngine {
         }
     }
 
+    /// Turns every `from` orb into `to`. Converted orbs get new ids so views can replace them.
+    @discardableResult
+    public func convertOrbs(from: OrbType, to: OrbType) -> [OrbConversion] {
+        guard from != to else { return [] }
+        var conversions: [OrbConversion] = []
+        for row in 0..<rows {
+            for col in 0..<cols {
+                guard let old = grid[row][col], old.type == from else { continue }
+                let orb = makeOrb(to)
+                grid[row][col] = orb
+                conversions.append(OrbConversion(position: GridPosition(col: col, row: row), oldOrbID: old.id, orb: orb))
+            }
+        }
+        return conversions
+    }
+
     // MARK: - Gravity & Skyfall
 
     /// Drops existing orbs into empty cells and fills the remaining top cells with new random orbs.

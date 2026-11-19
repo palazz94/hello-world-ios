@@ -10,10 +10,11 @@ public struct Player: Equatable, Sendable {
 
     public var isDefeated: Bool { currentHP <= 0 }
 
-    public init(maxHP: Int, attack: [Element: Int], recovery: Int) {
+    /// `currentHP` defaults to full and is clamped to `0...maxHP`.
+    public init(maxHP: Int, attack: [Element: Int], recovery: Int, currentHP: Int? = nil) {
         precondition(maxHP > 0, "maxHP must be positive")
         self.maxHP = maxHP
-        self.currentHP = maxHP
+        self.currentHP = min(max(currentHP ?? maxHP, 0), maxHP)
         self.attack = attack
         self.recovery = recovery
     }

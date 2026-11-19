@@ -7,19 +7,16 @@ struct GameSettings {
     var hapticsEnabled = true
 }
 
-/// Unlocked levels, talents and options, saved in `UserDefaults`.
+/// Options and the run in progress, saved in `UserDefaults` after every run action.
 @MainActor
 @Observable
 final class GameProgress {
     private enum Key {
-        static let completedLevels = "completedLevels"
-        static let talentRanks = "talentRanks"
         static let moveDuration = "moveDuration"
         static let hapticsEnabled = "hapticsEnabled"
+        static let runState = "runState"
     }
 
-    private(set) var completedLevels: Set<Int>
-    private(set) var talentRanks: [Talent: Int]
     var settings: GameSettings {
         didSet {
             defaults.set(settings.moveDuration, forKey: Key.moveDuration)
@@ -27,63 +24,66 @@ final class GameProgress {
         }
     }
 
+    /// Copy of `run.state`, refreshed after every action so SwiftUI redraws (the engine itself is not observable).
+    private(set) var runState: RunState?
+    @ObservationIgnored private(set) var run: RunEngine?
     @ObservationIgnored private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        completedLevels = Set(defaults.array(forKey: Key.completedLevels) as? [Int] ?? [])
-        let storedRanks = defaults.dictionary(forKey: Key.talentRanks) as? [String: Int] ?? [:]
-        talentRanks = Dictionary(uniqueKeysWithValues: storedRanks.compactMap { key, rank in
-            Talent(rawValue: key).map { ($0, rank) }
-        })
         let defaultSettings = GameSettings()
         settings = GameSettings(
             moveDuration: defaults.object(forKey: Key.moveDuration) as? Double ?? defaultSettings.moveDuration,
             hapticsEnabled: defaults.object(forKey: Key.hapticsEnabled) as? Bool ?? defaultSettings.hapticsEnabled
         )
+        // A save from an older version or with an unknown character is dropped.
+        if let data = defaults.data(forKey: Key.runState),
+           let state = try? JSONDecoder().decode(RunState.self, from: data),
+           GameCatalog.standard.character(id: state.characterID) != nil {
+            run = RunEngine(restoring: state)
+            runState = state
+        }
     }
 
-    // MARK: - Levels
+    // MARK: - Run
 
-    /// The first level is always open; every other one needs the previous level cleared.
-    func isUnlocked(_ level: Level) -> Bool {
-        guard let index = Level.campaign.firstIndex(where: { $0.id == level.id }) else { return false }
-        return index == 0 || completedLevels.contains(Level.campaign[index - 1].id)
+    func startRun(characterID: String) {
+        run = RunEngine(seed: UInt64.random(in: .min ... .max), characterID: characterID)
+        sync()
     }
 
-    func record(_ outcome: BattleOutcome, for level: Level) {
-        guard outcome == .victory, completedLevels.insert(level.id).inserted else { return }
-        defaults.set(Array(completedLevels), forKey: Key.completedLevels)
+    func chooseNode(_ index: Int) {
+        try? run?.chooseNode(index)
+        sync()
     }
 
-    // MARK: - Talents
-
-    /// One point per cleared level.
-    var availableTalentPoints: Int {
-        completedLevels.count - talentRanks.values.reduce(0, +)
+    /// A fresh battle for the current encounter; leaving it and coming back restarts the fight.
+    func makeBattle() -> BattleEngine? {
+        try? run?.makeBattle()
     }
 
-    func rank(of talent: Talent) -> Int { talentRanks[talent] ?? 0 }
-
-    func canUpgrade(_ talent: Talent) -> Bool {
-        availableTalentPoints > 0 && rank(of: talent) < Talent.maxRank
+    func finishBattle(_ battle: BattleEngine) {
+        try? run?.finishBattle(battle)
+        sync()
     }
 
-    func upgrade(_ talent: Talent) {
-        guard canUpgrade(talent) else { return }
-        talentRanks[talent] = rank(of: talent) + 1
-        saveTalents()
+    /// `nil` skips the reward.
+    func chooseReward(_ index: Int?) {
+        try? run?.chooseReward(index)
+        sync()
     }
 
-    func resetTalents() {
-        talentRanks.removeAll()
-        saveTalents()
+    func endRun() {
+        run = nil
+        sync()
     }
 
-    var player: Player { Player.test.applying(talents: talentRanks) }
-
-    private func saveTalents() {
-        defaults.set(Dictionary(uniqueKeysWithValues: talentRanks.map { ($0.key.rawValue, $0.value) }),
-                     forKey: Key.talentRanks)
+    private func sync() {
+        runState = run?.state
+        if let runState, let data = try? JSONEncoder().encode(runState) {
+            defaults.set(data, forKey: Key.runState)
+        } else {
+            defaults.removeObject(forKey: Key.runState)
+        }
     }
 }

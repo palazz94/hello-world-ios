@@ -13,23 +13,25 @@ struct PadLiteApp: App {
     }
 }
 
-/// Shows the menu, or the battle of the chosen level until it ends or is abandoned.
+/// Main menu, run screen, or the current battle (full screen) until it ends or is abandoned.
 private struct RootView: View {
     @Environment(GameProgress.self) private var progress
-    @State private var activeLevel: Level?
+    @State private var showingRun = false
+    @State private var activeBattle: BattleEngine?
 
     var body: some View {
-        if let level = activeLevel {
-            GameView(level: level, player: progress.player, settings: progress.settings) { outcome in
-                progress.record(outcome, for: level)
-                activeLevel = nil
+        if let battle = activeBattle {
+            GameView(battle: battle, settings: progress.settings) { _ in
+                progress.finishBattle(battle)
+                activeBattle = nil
             }
             .ignoresSafeArea()
             .defersSystemGestures(on: .bottom)
             .persistentSystemOverlays(.hidden)
             .overlay(alignment: .topTrailing) {
+                // Leaving keeps the run on this encounter; the fight restarts next time.
                 Button {
-                    activeLevel = nil
+                    activeBattle = nil
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
@@ -37,8 +39,15 @@ private struct RootView: View {
                 }
                 .padding(.horizontal)
             }
+        } else if showingRun, progress.runState != nil {
+            RunView(onBattle: { activeBattle = progress.makeBattle() },
+                    onMenu: { showingRun = false })
         } else {
-            MainMenuView { activeLevel = $0 }
+            MainMenuView(onContinue: { showingRun = true },
+                         onStartRun: { characterID in
+                             progress.startRun(characterID: characterID)
+                             showingRun = true
+                         })
         }
     }
 }

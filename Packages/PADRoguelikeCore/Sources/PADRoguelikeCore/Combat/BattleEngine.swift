@@ -1,6 +1,6 @@
 import Foundation
 
-public enum EncounterMode: Sendable {
+public enum EncounterMode: Codable, Sendable {
     /// All enemies are on the field, act and can be targeted.
     case simultaneous
     /// Only the first alive enemy is active; the next one steps in when it falls.
@@ -11,6 +11,7 @@ public enum BattleOutcome: Sendable {
     case ongoing, victory, defeat
 }
 
+/// Defines the rules for calculating combat bonuses based on combos and orb clusters.
 public struct CombatRules: Sendable {
     public var bonusPerExtraCombo: Double
     public var bonusPerExtraOrb: Double
@@ -31,6 +32,7 @@ public struct CombatRules: Sendable {
     }
 }
 
+/// Represents a single attack made by the player during a turn.
 public struct PlayerAttack: Sendable {
     public let element: Element
     public let targetIndex: Int
@@ -43,6 +45,8 @@ public struct EnemyAttack: Sendable {
     public let enemyIndex: Int
     /// HP actually removed from the player.
     public let damage: Int
+    /// Damage absorbed by the shield.
+    public let blocked: Int
 }
 
 public struct TurnReport: Sendable {
@@ -50,31 +54,50 @@ public struct TurnReport: Sendable {
     public let comboCount: Int
     public let playerAttacks: [PlayerAttack]
     public let healed: Int
+    public let shieldGained: Int
     public let enemyAttacks: [EnemyAttack]
     public let outcome: BattleOutcome
+    /// Every modifier that changed a value this turn, in application order.
+    public let appliedModifiers: [AppliedModifier]
 }
 
-/// Pure turn-based combat rules: player attack -> heal -> enemy countdown/attack.
+/// Pure turn-based combat rules: turn-start triggers -> player attack/heal -> combo triggers -> enemy countdown/attack.
 public final class BattleEngine {
     public let mode: EncounterMode
     public let rules: CombatRules
+    /// Sources active for the whole battle (relics, passive talents).
+    public let modifiers: [ModifierSource]
 
     public private(set) var player: Player
     public private(set) var enemies: [Enemy]
     public private(set) var turn = 0
+    /// Absorbs enemy damage before HP; lasts until used up or the battle ends.
+    public private(set) var shield = 0
+    public private(set) var buffs: [TimedBuff] = []
+    public private(set) var abilities: [AbilityState]
     private var preferredTarget: Int?
 
     private let initialPlayer: Player
     private let initialEnemies: [Enemy]
+    private let initialAbilities: [AbilityState]
 
-    public init(player: Player, enemies: [Enemy], mode: EncounterMode = .simultaneous, rules: CombatRules = CombatRules()) {
+    public init(player: Player, enemies: [Enemy], mode: EncounterMode = .simultaneous, rules: CombatRules = CombatRules(),
+                modifiers: [ModifierSource] = [], abilities: [AbilityState] = []) {
         precondition(!enemies.isEmpty, "A battle needs at least one enemy")
         self.player = player
         self.enemies = enemies
         self.mode = mode
         self.rules = rules
+        self.modifiers = modifiers
+        self.abilities = abilities
         self.initialPlayer = player
         self.initialEnemies = enemies
+        self.initialAbilities = abilities
+    }
+
+    /// Permanent modifiers plus active buffs.
+    public var resolver: ModifierResolver {
+        ModifierResolver(rules: rules, sources: modifiers + buffs.map(\.source))
     }
 
     public var outcome: BattleOutcome {
@@ -108,46 +131,119 @@ public final class BattleEngine {
     /// Applies one player move. `clusters` are all combos of the move, cascades included.
     public func resolveTurn(clusters: [MatchCluster]) -> TurnReport {
         guard outcome == .ongoing else {
-            return TurnReport(turn: turn, comboCount: 0, playerAttacks: [], healed: 0, enemyAttacks: [], outcome: outcome)
+            return TurnReport(turn: turn, comboCount: 0, playerAttacks: [], healed: 0, shieldGained: 0,
+                              enemyAttacks: [], outcome: outcome, appliedModifiers: [])
         }
         turn += 1
+        let resolver = self.resolver
         let activeAtStart = Set(activeEnemyIndices)
-        let comboMultiplier = rules.comboMultiplier(comboCount: clusters.count)
+        var applied: [AppliedModifier] = []
+        var healed = 0
+        var shieldGained = 0
+
+        let startShield = resolver.turnStartShield()
+        let startHeal = resolver.turnStartHeal()
+        applied += startShield.applied + startHeal.applied
+        shieldGained += startShield.value
+        healed += player.heal(startHeal.value)
 
         var attacks: [PlayerAttack] = []
-        var healed = 0
-
         for cluster in clusters {
-            let base = rules.orbMultiplier(orbCount: cluster.count) * comboMultiplier
             if let element = cluster.type.element {
                 guard let target = targetIndex else { continue }
-                let raw = Double(player.attack[element] ?? 0) * base * element.multiplier(against: enemies[target].element)
-                let damage = Int(raw.rounded())
-                enemies[target].takeDamage(damage)
-                attacks.append(PlayerAttack(element: element, targetIndex: target, damage: damage,
+                let hit = resolver.damage(attack: player.attack[element] ?? 0, element: element, cluster: cluster,
+                                          comboCount: clusters.count, defender: enemies[target].element)
+                applied += hit.applied
+                enemies[target].takeDamage(hit.value)
+                attacks.append(PlayerAttack(element: element, targetIndex: target, damage: hit.value,
                                             defeatedTarget: enemies[target].isDefeated))
             } else {
-                healed += player.heal(Int((Double(player.recovery) * base).rounded()))
+                let heal = resolver.heal(recovery: player.recovery, cluster: cluster, comboCount: clusters.count)
+                applied += heal.applied
+                healed += player.heal(heal.value)
             }
         }
+
+        let comboShield = resolver.comboShield(comboCount: clusters.count)
+        applied += comboShield.applied
+        shieldGained += comboShield.value
+        shield += shieldGained
 
         var enemyAttacks: [EnemyAttack] = []
         // Enemies that entered the field during this turn wait until the next one.
         for index in activeEnemyIndices where activeAtStart.contains(index) {
             guard outcome == .ongoing else { break }
-            if enemies[index].advanceTurn() {
-                enemyAttacks.append(EnemyAttack(enemyIndex: index, damage: player.takeDamage(enemies[index].attackPower)))
-            }
+            guard enemies[index].advanceTurn() else { continue }
+            let incoming = resolver.incomingDamage(enemies[index].attackPower)
+            applied += incoming.applied
+            let blocked = min(shield, incoming.value)
+            shield -= blocked
+            enemyAttacks.append(EnemyAttack(enemyIndex: index, damage: player.takeDamage(incoming.value - blocked),
+                                            blocked: blocked))
         }
 
+        buffs = buffs.compactMap { $0.ticked() }
+        for index in abilities.indices { abilities[index].tick() }
+
         return TurnReport(turn: turn, comboCount: clusters.count, playerAttacks: attacks, healed: healed,
-                          enemyAttacks: enemyAttacks, outcome: outcome)
+                          shieldGained: shieldGained, enemyAttacks: enemyAttacks, outcome: outcome,
+                          appliedModifiers: applied)
+    }
+
+    /// Uses an ability before the next move. `board` is required only for board effects.
+    public func useAbility(_ index: Int, board: BoardEngine? = nil) throws(AbilityError) -> AbilityReport {
+        guard abilities.indices.contains(index) else { throw .invalidIndex }
+        guard outcome == .ongoing else { throw .battleOver }
+        let state = abilities[index]
+        guard state.cooldownRemaining == 0 else { throw .onCooldown }
+        guard state.chargesLeft != 0 else { throw .noCharges }
+        guard player.currentHP > state.ability.hpCost else { throw .notEnoughHP }
+        guard board != nil || !state.ability.needsBoard else { throw .needsBoard }
+
+        _ = player.takeDamage(state.ability.hpCost)
+        abilities[index].consume()
+        var report = AbilityReport(abilityIndex: index)
+
+        for effect in state.ability.effects {
+            switch effect {
+            case let .damage(target, element, multiplier):
+                let targets = target == .allEnemies ? activeEnemyIndices : targetIndex.map { [$0] } ?? []
+                for target in targets {
+                    let raw = Double(player.attack[element] ?? 0) * multiplier
+                        * element.multiplier(against: enemies[target].element)
+                    let damage = Int(raw.rounded())
+                    enemies[target].takeDamage(damage)
+                    report.attacks.append(PlayerAttack(element: element, targetIndex: target, damage: damage,
+                                                       defeatedTarget: enemies[target].isDefeated))
+                }
+            case let .healPercent(fraction):
+                report.healed += player.heal(Int((Double(player.maxHP) * fraction).rounded()))
+            case let .shield(amount):
+                shield += amount
+                report.shieldGained += amount
+            case let .delayEnemies(turns):
+                for target in activeEnemyIndices { enemies[target].delay(by: turns) }
+                report.delayedEnemies = activeEnemyIndices
+            case let .buff(source, turns):
+                if turns > 0 { buffs.append(TimedBuff(source: source, remainingTurns: turns)) }
+            case let .convertOrbs(from, to):
+                report.conversions += board?.convertOrbs(from: from, to: to) ?? []
+            case .refreshBoard:
+                board?.generateBoard()
+                report.boardRefreshed = true
+            }
+        }
+        report.outcome = outcome
+        return report
     }
 
     public func reset() {
         player = initialPlayer
         enemies = initialEnemies
+        abilities = initialAbilities
         turn = 0
+        shield = 0
+        buffs = []
         preferredTarget = nil
     }
 }
