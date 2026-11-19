@@ -38,11 +38,14 @@ enum EnemyArtwork {
         case "Drago Rosso": Look(body: .spiky, mouth: .teeth, horns: true, wings: true, crown: true, aura: .boss)
         case "Lich": Look(body: .tall, mouth: .none, wings: true, crown: true, aura: .boss)
         case "Titano": Look(body: .block, eyes: 3, mouth: .teeth, horns: true, crown: true, aura: .boss)
-        default:
-            let hash = name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
-            return Look(body: Body.allCases[hash % Body.allCases.count], eyes: 1 + hash % 3,
-                        mouth: hash % 2 == 0 ? .teeth : .smile, horns: hash % 5 == 0)
+        default: fallbackLook(for: name)
         }
+    }
+
+    private static func fallbackLook(for name: String) -> Look {
+        let hash = name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
+        return Look(body: Body.allCases[hash % Body.allCases.count], eyes: 1 + hash % 3,
+                    mouth: hash % 2 == 0 ? .teeth : .smile, horns: hash % 5 == 0)
     }
 
     static func image(name: String, element: Element, side: CGFloat, scale: CGFloat) -> UIImage {
