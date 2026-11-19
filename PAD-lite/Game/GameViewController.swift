@@ -12,16 +12,27 @@ final class GameViewController: UIViewController {
         static let timerBarGap: CGFloat = 10
     }
 
-    private let engine = BoardEngine(cols: 6, rows: 5)
-    private lazy var scene: GameScene = TestBattleScene(
-        board: engine,
-        battle: BattleEngine(player: .test, enemies: Enemy.testRoster, mode: .simultaneous)
-    )
+    private let engine: BoardEngine
+    private let scene: TestBattleScene
 
     private var appliedBounds: CGRect = .null
     private var appliedInsets: UIEdgeInsets = .zero
 
     private var skView: SKView { view as! SKView }
+
+    init(level: Level, player: Player, settings: GameSettings, onBattleEnd: @escaping (BattleOutcome) -> Void) {
+        let board = BoardEngine(cols: 6, rows: 5)
+        engine = board
+        scene = TestBattleScene(board: board,
+                                battle: BattleEngine(player: player, enemies: level.enemies, mode: level.mode))
+        scene.moveDuration = settings.moveDuration
+        scene.hapticsEnabled = settings.hapticsEnabled
+        scene.onBattleEnd = onBattleEnd
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 
     override func loadView() {
         let skView = SKView()
@@ -90,6 +101,13 @@ final class GameViewController: UIViewController {
 
 /// SwiftUI bridge for the `App` lifecycle.
 struct GameView: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> GameViewController { GameViewController() }
+    let level: Level
+    let player: Player
+    let settings: GameSettings
+    let onBattleEnd: (BattleOutcome) -> Void
+
+    func makeUIViewController(context: Context) -> GameViewController {
+        GameViewController(level: level, player: player, settings: settings, onBattleEnd: onBattleEnd)
+    }
     func updateUIViewController(_ uiViewController: GameViewController, context: Context) {}
 }

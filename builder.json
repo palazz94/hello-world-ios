@@ -1,5 +1,5 @@
 {
-  "project": "HelloWorld",
+  "project": "PAD-lite",
   "platform": "ios",
   "github": {
     "owner": "palazz94",
@@ -9,8 +9,8 @@
   "codemagic": {},
   "bitrise": {},
   "ios": {
-    "scheme": "HelloWorld",
-    "bundleId": "com.example.HelloWorld"
+    "scheme": "PAD-lite",
+    "bundleId": "com.fpala.padlite"
   },
   "flutter": {
     "watch": {}

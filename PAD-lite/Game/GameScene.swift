@@ -28,7 +28,6 @@ class GameScene: SKScene {
     }
 
     private enum Timing {
-        static let moveDuration: TimeInterval = 5.0
         static let swap: TimeInterval = 0.08
         static let comboInterval: TimeInterval = 0.25
         static let pop: TimeInterval = 0.2
@@ -50,6 +49,9 @@ class GameScene: SKScene {
     private(set) var state: State = .idle
     /// When true, new drags are ignored (e.g. during enemy turns or game over).
     var isInputLocked = false
+    /// Seconds available to move orbs, counted from the first swap.
+    var moveDuration: TimeInterval = 5.0
+    var hapticsEnabled = true
 
     private var layout: BoardLayout?
     private var pendingLayout: BoardLayout?
@@ -314,7 +316,7 @@ class GameScene: SKScene {
         heldPosition = to
 
         if moveDeadline == nil {
-            moveDeadline = CACurrentMediaTime() + Timing.moveDuration
+            moveDeadline = CACurrentMediaTime() + moveDuration
         }
 
         if let displaced = engine.orb(at: from), let node = orbNodes[displaced.id] {
@@ -324,8 +326,10 @@ class GameScene: SKScene {
             node.run(move, withKey: Self.swapActionKey)
         }
 
-        swapFeedback.impactOccurred()
-        swapFeedback.prepare()
+        if hapticsEnabled {
+            swapFeedback.impactOccurred()
+            swapFeedback.prepare()
+        }
         return true
     }
 
@@ -363,7 +367,7 @@ class GameScene: SKScene {
     override func update(_ currentTime: TimeInterval) {
         guard state == .dragging, let deadline = moveDeadline else { return }
         let remaining = deadline - CACurrentMediaTime()
-        updateTimerBar(fraction: CGFloat(max(0, remaining / Timing.moveDuration)))
+        updateTimerBar(fraction: CGFloat(max(0, remaining / moveDuration)))
         if remaining <= 0 { finishDrag() }
     }
 
@@ -397,7 +401,7 @@ class GameScene: SKScene {
                 comboCount += 1
                 pop(cluster)
                 showCombo(comboCount)
-                playComboHaptic(comboCount)
+                if hapticsEnabled { playComboHaptic(comboCount) }
                 await wait(Timing.comboInterval)
             }
 

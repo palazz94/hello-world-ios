@@ -22,6 +22,8 @@ final class TestBattleScene: GameScene {
     private let turnLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
     private var outcomeOverlay: SKNode?
     private var canRestart = false
+    /// Called when the result screen is tapped; when nil the battle restarts instead.
+    var onBattleEnd: ((BattleOutcome) -> Void)?
 
     private let targetFeedback = UISelectionFeedbackGenerator()
     private let damageFeedback = UIImpactFeedbackGenerator(style: .heavy)
@@ -86,14 +88,20 @@ final class TestBattleScene: GameScene {
         guard let touch = touches.first else { return }
 
         if outcomeOverlay != nil {
-            if canRestart { restartBattle() }
+            guard canRestart else { return }
+            if let onBattleEnd {
+                canRestart = false
+                onBattleEnd(battle.outcome)
+            } else {
+                restartBattle()
+            }
             return
         }
 
         let point = touch.location(in: enemyLayer)
         if let index = enemyNodes.firstIndex(where: { $0.contains(pointInParent: point) }) {
             if state == .idle, !isInputLocked, battle.selectTarget(index) {
-                targetFeedback.selectionChanged()
+                if hapticsEnabled { targetFeedback.selectionChanged() }
                 refresh(animated: true)
             }
             return
@@ -130,7 +138,7 @@ final class TestBattleScene: GameScene {
             for hit in report.enemyAttacks {
                 enemyNodes[safe: hit.enemyIndex]?.playAttack()
                 showPlayerChange(-hit.damage)
-                damageFeedback.impactOccurred()
+                if hapticsEnabled { damageFeedback.impactOccurred() }
                 await wait(Timing.enemyHit)
             }
         }
@@ -176,7 +184,7 @@ final class TestBattleScene: GameScene {
 
     private func showOutcome(_ outcome: BattleOutcome) {
         let isVictory = outcome == .victory
-        outcomeFeedback.notificationOccurred(isVictory ? .success : .error)
+        if hapticsEnabled { outcomeFeedback.notificationOccurred(isVictory ? .success : .error) }
 
         let overlay = SKNode()
         overlay.zPosition = 1_000
@@ -196,7 +204,7 @@ final class TestBattleScene: GameScene {
         overlay.addChild(title)
 
         let subtitle = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
-        subtitle.text = "Turni: \(battle.turn) - Tocca per ricominciare"
+        subtitle.text = "Turni: \(battle.turn) - Tocca per \(onBattleEnd == nil ? "ricominciare" : "continuare")"
         subtitle.fontSize = 18
         subtitle.fontColor = .white
         subtitle.position = CGPoint(x: center.x, y: center.y - title.fontSize)
