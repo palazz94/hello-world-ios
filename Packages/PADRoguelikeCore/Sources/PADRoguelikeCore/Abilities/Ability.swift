@@ -1,6 +1,6 @@
 import Foundation
 
-public enum AbilityTarget: Hashable, Codable, Sendable {
+public enum AbilityTarget: String, Hashable, Codable, Sendable {
     case selectedEnemy, allEnemies
 }
 

@@ -30,8 +30,8 @@ hello-world-ios/
 │   └── Game/                       ← la battaglia (SpriteKit)
 │       ├── GameViewController.swift ← crea la "tela" di gioco e calcola dove disegnare la griglia
 │       ├── GameScene.swift          ← griglia, trascinamento, combo
-│       ├── OrbArtwork.swift         ← disegno delle sfere "a gemma"
-│       ├── EnemyArtwork.swift       ← disegno dei mostri + sfondo della battaglia
+│       ├── OrbArtwork.swift         ← immagini delle sfere (asset o sfera classica + icona)
+│       ├── EnemyArtwork.swift       ← immagini dei nemici e sfondo (asset o segnaposto con icona)
 │       ├── ComboHaptics.swift       ← vibrazione a ogni combo
 │       └── Battle/
 │           ├── TestBattleScene.swift ← nemici, abilità, barra HP, turni, vittoria/sconfitta
@@ -49,17 +49,21 @@ hello-world-ios/
     │   │   ├── Modifier.swift      ← i bonus/malus tipizzati e le loro condizioni
     │   │   └── ModifierResolver.swift ← la "calcolatrice" che li applica
     │   ├── Abilities/Ability.swift ← abilità attive (cooldown, cariche, costo HP, effetti)
-    │   ├── Characters/
-    │   │   ├── Character.swift     ← definizione dell'eroe, talenti passivi
-    │   │   └── CharacterCatalog.swift ← i 6 eroi
-    │   ├── Relics/Relic.swift      ← le 24 reliquie
+    │   ├── Characters/Character.swift ← definizione dell'eroe, talenti passivi
+    │   ├── Relics/Relic.swift      ← cos'è una reliquia (i dati sono nel JSON)
+    │   ├── Content/ContentCoding.swift ← come si leggono/scrivono i dati in JSON leggibile
+    │   ├── Resources/              ← ★ I DATI DEL GIOCO (modificabili senza toccare lo Swift)
+    │   │   ├── heroes.json         ← i 6 eroi, con talenti e abilità
+    │   │   ├── enemies.json        ← i 17 nemici
+    │   │   ├── relics.json         ← le 24 reliquie
+    │   │   └── events.json         ← gli 8 eventi
     │   └── Run/
     │       ├── RunMap.swift        ← la mappa a nodi
-    │       ├── RunEvent.swift      ← gli eventi testuali con scelte
+    │       ├── RunEvent.swift      ← cos'è un evento testuale con scelte
     │       ├── RunState.swift      ← lo stato salvabile della run
     │       ├── RunRules.swift      ← regole: generazione mappa, difficoltà, ricompense, negozio
     │       ├── RunEngine.swift     ← il "motore" che fa avanzare la run
-    │       ├── GameCatalog.swift   ← catalogo: reliquie, eroi, nemici, eventi
+    │       ├── GameCatalog.swift   ← carica e controlla i file JSON; cos'è un nemico-modello
     │       └── SeededRandom.swift  ← casualità riproducibile (stesso seme = stessa run)
     └── Tests/                      ← test automatici della logica
 ```
@@ -82,7 +86,7 @@ flowchart TB
         BE[BattleEngine]
         BO[BoardEngine]
         MR[ModifierResolver]
-        CAT[Catalogo: eroi, reliquie, nemici, eventi]
+        CAT[Catalogo: Resources/*.json]
     end
     GP -- "usa" --> RE
     RE -- "crea battaglie" --> BE
@@ -245,7 +249,7 @@ $$
 
 **Esempio (Nerea, livello 1)**: match da 4 sfere acqua, 1 combo, nemico neutro: 950 × 1.25 (4 sfere) × 1.5 (affinità) × 1.6 (talento "Quadrato") = **2850**.
 
-### 3.6 Eroi (`Characters/`)
+### 3.6 Eroi (`Resources/heroes.json`)
 
 Ogni run si gioca con **un solo eroe**. Attacca con **tutti** i colori, ma il **suo elemento** ha l'**affinità ×1.5**. Livelli 1–5 (+10% statistiche per livello); i talenti si sbloccano ai livelli 1, 3 e 5.
 
@@ -265,7 +269,7 @@ Ogni run si gioca con **un solo eroe**. Attacca con **tutti** i colori, ma il **
 - Le abilità **ignorano lo scudo combo** dei nemici, ma non armatura e assorbimento.
 - Errori possibili: `onCooldown`, `noCharges`, `notEnoughHP`, `needsBoard`, `battleOver`, `invalidIndex`.
 
-### 3.8 Reliquie (`Relics/Relic.swift`)
+### 3.8 Reliquie (`Resources/relics.json`)
 
 24 reliquie in 3 rarità (comune, rara, leggendaria), ognuna con nome, frase d'atmosfera e modificatori. Molte sono **a doppio taglio**. Qualche esempio:
 
@@ -313,7 +317,7 @@ flowchart BT
 | 🎁 **Tesoro** | scegli 1 tra 3 reliquie |
 | 👑 **Boss** | Drago Rosso, Lich o Titano. Vincere = vincere la run |
 
-**Eventi** (`RunEvent.standard`, 8 in tutto): ogni opzione ha degli effetti (`EventEffect`: perdi/recupera HP, guadagna/spendi oro, reliquia, livello, **combattimento**). Esempi:
+**Eventi** (`Resources/events.json`, 8 in tutto): ogni opzione ha degli effetti (`EventEffect`: perdi/recupera HP, guadagna/spendi oro, reliquia, livello, **combattimento**). Esempi:
 - *Altare di Sangue*: −25% HP → reliquia rara.
 - *Cavaliere Ferito*: curalo (−15% HP, +1 livello) **oppure** derubalo (+90 oro, ma combatti un elite).
 - *Santuario della Luce*: prega (+25% HP) **oppure** spezza il sigillo (reliquia **leggendaria**, ma combatti un elite).
@@ -360,6 +364,77 @@ Errori: `wrongPhase` (comando nel momento sbagliato), `invalidChoice`, `notEnoug
 - **`SeededRandom`**: stesso seme + stesse scelte = stessa identica run.
 - **`RunRules`** è il punto per cambiare le regole senza toccare il motore (mappa, nemici, crescita, oro, ricompense, negozio, eventi). `StandardRunRules` è la versione di default.
 
+### 3.10 I dati del gioco: i file JSON (`Resources/`)
+
+Eroi, nemici, reliquie ed eventi **non sono scritti nel codice Swift**: stanno in 4 file JSON dentro `Packages/PADRoguelikeCore/Sources/PADRoguelikeCore/Resources/`. Il codice definisce solo *che forma* hanno i dati; i file dicono *quali* sono. Per bilanciare il gioco o aggiungere contenuti basta modificare i JSON.
+
+**Come vengono caricati**: `GameCatalog.standard` legge i 4 file all'avvio (`GameCatalog.load()`), poi li controlla con `validate()`. Se qualcosa non va:
+- `swift test` fallisce subito (test `bundledContentLoadsAndIsConsistent`) con un messaggio leggibile;
+- l'app si fermerebbe all'avvio con lo stesso messaggio, per esempio:
+  `relics.json: [3].modifiers[0]: Unknown field "secnds"; expected one of ["seconds", "type"]`
+  (= quarta reliquia, primo modificatore, campo scritto male).
+
+Cosa viene controllato: campi sconosciuti o mancanti, tipi sconosciuti, id duplicati, nemici di ogni livello (normali, elite, boss), almeno un nemico normale per il piano 1, HP e intervalli positivi, livelli dei talenti tra 1 e 5, reliquie senza effetti, eventi senza opzioni.
+
+#### Il formato, in breve
+
+- **Elementi / sfere**: per nome: `"fire"`, `"water"`, `"wood"`, `"light"`, `"dark"` (+ `"heal"` per le sfere cuore). **Rarità**: `"common"`, `"rare"`, `"legendary"`.
+- **Modificatori, effetti delle abilità, effetti degli eventi**: oggetti con un campo `"type"`.
+- **Condizioni e tratti dei nemici**: oggetti con **una sola chiave**, es. `{"orbsExactly": 4}`, `{"armor": 150}`.
+- I campi facoltativi si possono omettere: `flavor`, `hpCost` (0), `charges` (infinite), `traits` (nessuno), `minRow` (0), `effects` di un'opzione (nessuno), `element` di un modificatore (= tutti gli elementi).
+
+**Una reliquia**:
+```json
+{
+  "id": "giant-hammer",
+  "name": "Martello del Gigante",
+  "rarity": "common",
+  "flavor": "Colpi enormi, ma i piccoli non contano.",
+  "modifiers": [
+    {"type": "clusterDamage", "when": {"orbsAtLeast": 5}, "factor": 1.7},
+    {"type": "clusterDamage", "when": {"orbsExactly": 3}, "factor": 0.8}
+  ]
+}
+```
+
+**Un nemico**:
+```json
+{"name": "Granchio", "element": "water", "tier": "minion", "baseHP": 3400, "baseAttack": 500,
+ "turnInterval": 2, "traits": [{"armor": 150}], "minRow": 0}
+```
+
+**Un'opzione di evento**:
+```json
+{"label": "Offri il tuo sangue (-25% HP): reliquia rara",
+ "effects": [{"type": "loseHP", "fraction": 0.25}, {"type": "gainRelic", "rarity": "rare"}]}
+```
+
+**Tutti i `type` dei modificatori** (campi tra parentesi; `when` = condizione):
+
+| `type` | Campi |
+|---|---|
+| `flatDamage` | `amount`, `element`? |
+| `damageMultiplier` | `factor`, `element`? |
+| `clusterDamage` | `when` (condizione sul match), `factor`, `element`? |
+| `turnDamage` | `when` (condizione sulla mossa), `factor` |
+| `comboBonus` | `amount` |
+| `orbBonus` | `amount`, `orb`? |
+| `flatHeal` / `healOnTurnStart` / `hpLossOnTurnStart` / `shieldOnTurnStart` | `amount` |
+| `healMultiplier` / `maxHPMultiplier` / `damageTakenMultiplier` | `factor` |
+| `damageReduction` | `amount` (0.25 = 25%) |
+| `turnHeal` / `turnSelfDamage` / `turnShield` | `when`, `amount` |
+| `moveTime` | `seconds` (negativo = meno tempo) |
+
+**Condizioni**: sul match `orbsAtLeast`, `orbsAtMost`, `orbsExactly`; sulla mossa `combosAtLeast`, `combosAtMost`, `colorsAtLeast`, `matched` (lista di sfere), `orbsAtLeast`, `hpBelow`, `hpAbove` (0.4 = 40%).
+
+**Tratti dei nemici**: `comboShield` (numero), `enrage` (0.2 = +20%), `regenerate` (0.05 = 5%), `absorb` (elemento), `armor` (numero).
+
+**Effetti delle abilità**: `damage` (`target`: `"selectedEnemy"`/`"allEnemies"`, `element`, `multiplier`), `healPercent` (`fraction`), `shield` (`amount`), `delayEnemies` (`turns`), `buff` (`name`, `modifiers`, `turns`), `convertOrbs` (`from`, `to`), `refreshBoard`.
+
+**Effetti degli eventi**: `loseHP` / `heal` (`fraction`), `gainGold` / `loseGold` (`amount`), `gainRelic` (`rarity`), `levelUp`, `fight` (`kind`: `"combat"` o `"elite"`).
+
+> Lo stesso formato è usato anche nei **salvataggi** della run. Cambiando formato, i salvataggi vecchi vengono ignorati (`GameProgress` usa la chiave `runState.v3`).
+
 ---
 
 ## 4. L'App
@@ -381,7 +456,7 @@ flowchart LR
 
 - **`PadLiteApp.swift` / `RootView`**: mostra la battaglia se ce n'è una attiva, altrimenti la run (`RunView`) se la stai guardando, altrimenti il menu. La **X** in battaglia torna alla mappa (lo scontro ricomincia da capo la volta dopo).
 - **`GameProgress.swift`**: opzioni + run in corso. Ogni azione (`travel`, `finishBattle`, `chooseReward`, `chooseEventOption`, `buy`, `leaveShop`, `rest`, `endRun`) aggiorna `runState` (così SwiftUI ridisegna) e **salva in JSON** in `UserDefaults`. All'avvio ricarica la run; salvataggi di versioni vecchie vengono ignorati.
-- **`MainMenuView.swift`**: sfondo sfumato, sfere-gemma che fluttuano, titolo dorato; "Continua" mostra ritratto, livello e piano.
+- **`MainMenuView.swift`**: sfondo sfumato, sfere che fluttuano, titolo dorato; "Continua" mostra ritratto, livello e piano.
 - **`CharacterSelectView.swift`**: una scheda per eroe con ritratto, titolo, stile di gioco, statistiche, talenti (bonus verdi, malus rossi) e abilità.
 - **`RunView.swift`**:
   - **barra in alto** (`RunHUD`): ritratto (tocca per i dettagli dell'eroe), livello, barra HP, oro, piano, menu, e la fila di **icone delle reliquie** (tocca per i dettagli);
@@ -397,10 +472,23 @@ SpriteKit è il motore 2D di Apple: **`SKScene`** (la tela), **`SKNode`** (quals
 
 - **`GameViewController.swift`**: riceve la battaglia già pronta dalla run; il tempo per muovere = opzione + bonus/malus `moveTime` delle reliquie (minimo 2 s).
 - **`GameScene.swift`**: griglia, trascinamento (anche in diagonale), timer, combo a cascata. `reloadOrbs()` ridisegna le sfere dopo un'abilità.
-- **`OrbArtwork.swift`**: ogni sfera è una **gemma** disegnata con Core Graphics (la libreria di disegno di Apple): bagliore colorato, sfumatura chiaro→scuro, faccetta centrale, riflesso e scintilla. Ogni tipo ha una **sagoma diversa** (fuoco esagono, acqua goccia, legno foglia, luce rombo, buio ottagono, cuore a cuore), così si distinguono anche senza i colori. Disegnate una volta sola per tipo e riusate (veloce).
+- **`OrbArtwork.swift`**: l'immagine di ogni sfera, preparata una volta per tipo e riusata. In ordine di priorità:
+  1. se negli asset c'è `orb-<tipo>` (es. `orb-fire`) usa **quell'immagine intera**;
+  2. altrimenti disegna la **sfera classica** (cerchio colorato, bordo, riflesso) e sopra mette l'icona `orb-icon-<tipo>` se esiste,
+  3. oppure un'icona di sistema (**SF Symbol**): fiamma, goccia, foglia, sole, luna, cuore (`symbolName`).
 - **`EnemyArtwork.swift`**:
-  - `EnemyArtwork`: **mostri procedurali**. Ogni nome ha un "aspetto" (`Look`): forma del corpo (gelatina, palla, spinoso, blocco, alto), numero di occhi, bocca (sorriso/denti), corna, ali, cappello da fungo, corona, aura (elite dorata, boss rossa). I colori vengono dall'elemento. Elite e boss hanno sopracciglia arrabbiate e occhi luminosi.
-  - `BackdropArtwork`: sfondo notturno con stelle e colline.
+  - `EnemyArtwork`: se negli asset c'è `enemy-<nome>` usa quell'immagine; altrimenti un **segnaposto**: disco del colore dell'elemento con un'icona SF Symbol (tabella `symbols`, es. Slime = goccia, Lich = luna).
+  - `BackdropArtwork`: usa l'asset `battle-background` se c'è, altrimenti una sfumatura viola.
+  - `IconDrawing.drawSymbol`: disegna un SF Symbol bianco dentro un rettangolo.
+
+**Come aggiungere le tue immagini**: in Xcode apri `PAD-lite/Assets.xcassets`, trascina dentro un PNG **quadrato con sfondo trasparente** e rinominalo come sotto. Non serve toccare il codice: al prossimo avvio viene usato.
+
+| Cosa | Nome dell'asset | Esempio |
+|---|---|---|
+| Sfera intera | `orb-<tipo>` | `orb-fire`, `orb-water`, `orb-wood`, `orb-light`, `orb-dark`, `orb-heal` |
+| Solo l'icona sulla sfera | `orb-icon-<tipo>` | `orb-icon-fire` |
+| Nemico | `enemy-<nome>`: minuscolo, spazi → trattini, niente accenti | `enemy-slime`, `enemy-fuoco-fatuo`, `enemy-drago-rosso` |
+| Sfondo battaglia | `battle-background` | — |
 - **`TestBattleScene.swift`**: nemici, pulsanti abilità, barra HP. Mostra "ASSORBE +N" (nemico curato), "IMMUNE" (scudo combo), "SCUDO" (colpo assorbito dal tuo scudo) e i danni auto-inflitti.
 - **`BattleNodes.swift`**: `HPBarNode`, `EnemyNode` (ritratto che "respira", nome, barra HP, "Attacco: turni · danno", tratti in arancione, anello dorato sul bersaglio, lampo bianco quando colpito), `AbilityButtonNode`, `FloatingText`.
 
@@ -425,17 +513,18 @@ SpriteKit è il motore 2D di Apple: **`SKScene`** (la tela), **`SKNode`** (quals
 |---|---|---|
 | Tempo per muovere di default | `GameProgress.swift` | `GameSettings.moveDuration` |
 | Griglia più grande | `GameViewController.swift` | `BoardEngine(cols: 6, rows: 5)` |
-| Nuova reliquia | `Relic.swift` | una voce in `Relic.standard` (+ icona in `RunVisuals.swift`) |
-| Nuovo tipo di bonus o condizione | `Modifier.swift` + `ModifierResolver.swift` + `RunTexts.swift` | nuovo `case` + dove applicarlo + testo |
-| Nuovo eroe | `CharacterCatalog.swift` | una voce (+ simbolo in `RunVisuals.swift`) |
-| Nuovo nemico | `GameCatalog.swift` | un `EnemyTemplate` (+ aspetto in `EnemyArtwork.look`) |
-| Nuovo tratto nemico | `Enemy.swift` + `RunTexts.swift` | nuovo `case` in `EnemyTrait` + testo |
-| Nuovo evento | `RunEvent.swift` | una voce in `RunEvent.standard` |
+| Nuova reliquia | `Resources/relics.json` | un oggetto nella lista (+ icona in `RunVisuals.swift`) |
+| Nuovo tipo di bonus o condizione | `Modifier.swift` + `ModifierResolver.swift` + `ContentCoding.swift` + `RunTexts.swift` | nuovo `case` + dove applicarlo + nome JSON + testo |
+| Nuovo eroe | `Resources/heroes.json` | un oggetto (+ simbolo in `RunVisuals.swift`) |
+| Nuovo nemico | `Resources/enemies.json` | un oggetto (+ asset `enemy-<nome>` o icona in `EnemyArtwork.symbols`) |
+| Nuovo tratto nemico | `Enemy.swift` + `ContentCoding.swift` + `RunTexts.swift` | nuovo `case` in `EnemyTrait` + nome JSON + testo |
+| Nuovo evento | `Resources/events.json` | un oggetto |
 | Lunghezza della mappa / percorsi | `RunRules.swift` | `rows`, `columns`, `paths` |
 | Frequenza delle stanze | `RunRules.swift` | i pesi in `kind(row:parents:rng:)` |
-| Difficoltà | `RunRules.swift` | `hpGrowthPerRow`, `attackGrowthPerRow`, statistiche in `GameCatalog.swift` |
+| Difficoltà | `RunRules.swift` + `Resources/enemies.json` | `hpGrowthPerRow`, `attackGrowthPerRow` + statistiche dei nemici |
 | Prezzi del mercante / oro | `RunRules.swift` | `shop(...)`, `gold(after:)` |
-| Colori e sagome delle sfere | `OrbArtwork.swift` | `baseColor` / `lightColor` / `rimColor`, `outline(for:)` |
+| Immagini di sfere / nemici / sfondo | `Assets.xcassets` | asset `orb-*`, `orb-icon-*`, `enemy-*`, `battle-background` (vedi 4.2) |
+| Colori e icone di riserva delle sfere | `OrbArtwork.swift` | `baseColor` / `rimColor`, `symbolName` |
 | Colori dell'interfaccia | `RunVisuals.swift` | `Theme` |
 | Icona dell'app | `Assets.xcassets/AppIcon.appiconset/` | `AppIcon.png` (1024×1024) |
 
@@ -443,14 +532,14 @@ SpriteKit è il motore 2D di Apple: **`SKScene`** (la tela), **`SKNode`** (quals
 
 ## 7. Come provarlo
 
-- **Logica (anche su Linux)**: dalla cartella `Packages/PADRoguelikeCore` esegui `swift test`. `RoguelikeSystemsTests.swift` copre condizioni, rischio/ricompensa, tratti nemici, abilità, eroi, tutte le stanze, eventi, salvataggio e la forma della mappa (25 semi diversi).
+- **Logica (anche su Linux)**: dalla cartella `Packages/PADRoguelikeCore` esegui `swift test`. `RoguelikeSystemsTests.swift` copre condizioni, rischio/ricompensa, tratti nemici, abilità, eroi, tutte le stanze, eventi, salvataggio e la forma della mappa (25 semi diversi). `ContentTests.swift` controlla i file JSON: caricamento, coerenza, formato e messaggi d'errore. **Esegui `swift test` dopo ogni modifica ai JSON.**
 - **App completa**: serve un Mac con Xcode (`xcodegen` + Xcode), oppure la CI in `.github/workflows/` (`ios-build.yml` compila, `ios-share.yml` apre un simulatore remoto).
 
 ---
 
 ## 8. Glossario rapido
 
-- **Orb / sfera / gemma**: la pallina colorata sulla griglia.
+- **Orb / sfera**: la pallina colorata sulla griglia.
 - **Combo / match / cluster**: gruppo di 3+ sfere uguali collegate.
 - **Cascata / skyfall**: sfere nuove che cadono e creano altre combo.
 - **Run**: una partita completa, dal piano 1 al boss.
@@ -464,7 +553,9 @@ SpriteKit è il motore 2D di Apple: **`SKScene`** (la tela), **`SKNode`** (quals
 - **Talento**: bonus passivo dell'eroe, si sblocca a un certo livello.
 - **Cooldown / cariche**: turni di attesa tra due usi / usi massimi per battaglia.
 - **Seme (seed)**: numero da cui parte la casualità; stesso seme = stessa run.
-- **Codable / JSON**: formato con cui la run viene salvata.
-- **Core Graphics**: la libreria di Apple per disegnare (usata per gemme e mostri).
+- **Codable / JSON**: formato di testo con cui sono scritti i dati del gioco e salvata la run.
+- **Core Graphics**: la libreria di Apple per disegnare (usata per la sfera classica e i segnaposto).
+- **Asset**: un'immagine aggiunta a `Assets.xcassets`, caricata per nome.
+- **SF Symbols**: le icone di sistema di Apple (es. `flame.fill`), usate come segnaposto.
 - **SwiftUI / SpriteKit**: interfaccia (menu, mappa) / motore 2D (battaglia).
 - **Hook**: punto previsto per inserire regole personalizzate (es. `RunRules`).

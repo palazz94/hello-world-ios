@@ -8,7 +8,7 @@ let package = Package(
         .library(name: "PADRoguelikeCore", targets: ["PADRoguelikeCore"]),
     ],
     targets: [
-        .target(name: "PADRoguelikeCore"),
+        .target(name: "PADRoguelikeCore", resources: [.process("Resources")]),
         .testTarget(name: "PADRoguelikeCoreTests", dependencies: ["PADRoguelikeCore"]),
     ]
 )

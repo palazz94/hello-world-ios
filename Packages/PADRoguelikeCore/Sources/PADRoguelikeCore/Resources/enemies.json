@@ -1,0 +1,151 @@
+[
+  {"name": "Slime", "element": "wood", "tier": "minion", "baseHP": 2600, "baseAttack": 400, "turnInterval": 1},
+  {
+    "name": "Fuoco Fatuo",
+    "element": "fire",
+    "tier": "minion",
+    "baseHP": 2000,
+    "baseAttack": 700,
+    "turnInterval": 2
+  },
+  {
+    "name": "Granchio",
+    "element": "water",
+    "tier": "minion",
+    "baseHP": 3400,
+    "baseAttack": 500,
+    "turnInterval": 2,
+    "traits": [{"armor": 150}]
+  },
+  {
+    "name": "Pipistrello",
+    "element": "dark",
+    "tier": "minion",
+    "baseHP": 2200,
+    "baseAttack": 450,
+    "turnInterval": 1
+  },
+  {
+    "name": "Fungo Velenoso",
+    "element": "wood",
+    "tier": "minion",
+    "baseHP": 3000,
+    "baseAttack": 350,
+    "turnInterval": 1,
+    "minRow": 2,
+    "traits": [{"regenerate": 0.1}]
+  },
+  {
+    "name": "Spiritello",
+    "element": "light",
+    "tier": "minion",
+    "baseHP": 2600,
+    "baseAttack": 800,
+    "turnInterval": 2,
+    "minRow": 3,
+    "traits": [{"absorb": "dark"}]
+  },
+  {
+    "name": "Scheletro",
+    "element": "dark",
+    "tier": "minion",
+    "baseHP": 3800,
+    "baseAttack": 700,
+    "turnInterval": 2,
+    "minRow": 3,
+    "traits": [{"enrage": 0.3}]
+  },
+  {
+    "name": "Golem di Fango",
+    "element": "water",
+    "tier": "minion",
+    "baseHP": 5500,
+    "baseAttack": 1000,
+    "turnInterval": 3,
+    "minRow": 5,
+    "traits": [{"armor": 300}]
+  },
+  {
+    "name": "Mimic",
+    "element": "light",
+    "tier": "minion",
+    "baseHP": 4200,
+    "baseAttack": 1200,
+    "turnInterval": 3,
+    "minRow": 5,
+    "traits": [{"comboShield": 3}]
+  },
+  {
+    "name": "Salamandra",
+    "element": "fire",
+    "tier": "minion",
+    "baseHP": 3600,
+    "baseAttack": 650,
+    "turnInterval": 1,
+    "minRow": 7,
+    "traits": [{"enrage": 0.15}]
+  },
+  {
+    "name": "Cavaliere Oscuro",
+    "element": "dark",
+    "tier": "elite",
+    "baseHP": 16000,
+    "baseAttack": 1600,
+    "turnInterval": 2,
+    "traits": [{"comboShield": 4}]
+  },
+  {
+    "name": "Treant Antico",
+    "element": "wood",
+    "tier": "elite",
+    "baseHP": 20000,
+    "baseAttack": 1300,
+    "turnInterval": 3,
+    "traits": [{"regenerate": 0.05}, {"armor": 250}]
+  },
+  {
+    "name": "Drago Giovane",
+    "element": "fire",
+    "tier": "elite",
+    "baseHP": 15000,
+    "baseAttack": 1000,
+    "turnInterval": 1,
+    "traits": [{"enrage": 0.2}]
+  },
+  {
+    "name": "Leviatano",
+    "element": "water",
+    "tier": "elite",
+    "baseHP": 18000,
+    "baseAttack": 1800,
+    "turnInterval": 2,
+    "traits": [{"absorb": "wood"}]
+  },
+  {
+    "name": "Drago Rosso",
+    "element": "fire",
+    "tier": "boss",
+    "baseHP": 48000,
+    "baseAttack": 2200,
+    "turnInterval": 2,
+    "traits": [{"enrage": 0.15}, {"comboShield": 4}]
+  },
+  {
+    "name": "Lich",
+    "element": "dark",
+    "tier": "boss",
+    "baseHP": 42000,
+    "baseAttack": 1900,
+    "turnInterval": 2,
+    "traits": [{"regenerate": 0.03}, {"absorb": "light"}]
+  },
+  {
+    "name": "Titano",
+    "element": "wood",
+    "tier": "boss",
+    "baseHP": 55000,
+    "baseAttack": 2800,
+    "turnInterval": 3,
+    "traits": [{"armor": 400}, {"enrage": 0.1}]
+  }
+]

@@ -9,7 +9,7 @@ struct CharacterSelectView: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                ForEach(CharacterDefinition.standard) { character in
+                ForEach(GameCatalog.standard.characters) { character in
                     HeroCard(character: character) {
                         if progress.runState == nil {
                             onStart(character.id)

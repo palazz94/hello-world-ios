@@ -1,0 +1,250 @@
+[
+  {
+    "id": "kael",
+    "name": "Kael",
+    "title": "Il Ritmo",
+    "element": "fire",
+    "playstyle": "Tante combo piccole: più combo fai, più cresce.",
+    "baseHP": 4200,
+    "baseAttack": 1000,
+    "baseRecovery": 250,
+    "talents": [
+      {
+        "id": "kael.rhythm",
+        "name": "Ritmo",
+        "unlockLevel": 1,
+        "modifiers": [{"type": "comboBonus", "amount": 0.1}]
+      },
+      {
+        "id": "kael.crescendo",
+        "name": "Crescendo",
+        "unlockLevel": 3,
+        "modifiers": [{"type": "turnDamage", "when": {"combosAtLeast": 6}, "factor": 1.5}]
+      },
+      {
+        "id": "kael.inferno",
+        "name": "Inferno",
+        "unlockLevel": 5,
+        "modifiers": [{"type": "turnDamage", "when": {"combosAtLeast": 8}, "factor": 2}]
+      }
+    ],
+    "abilities": [
+      {
+        "id": "kael.blast",
+        "name": "Esplosione",
+        "cooldown": 5,
+        "effects": [{"type": "damage", "element": "fire", "target": "selectedEnemy", "multiplier": 8}]
+      }
+    ]
+  },
+  {
+    "id": "nerea",
+    "name": "Nerea",
+    "title": "La Geometra",
+    "element": "water",
+    "playstyle": "Match da esattamente 4 sfere valgono moltissimo.",
+    "baseHP": 4000,
+    "baseAttack": 950,
+    "baseRecovery": 300,
+    "talents": [
+      {
+        "id": "nerea.square",
+        "name": "Quadrato",
+        "unlockLevel": 1,
+        "modifiers": [{"type": "clusterDamage", "when": {"orbsExactly": 4}, "factor": 1.6}]
+      },
+      {
+        "id": "nerea.tide",
+        "name": "Onda Quadra",
+        "unlockLevel": 3,
+        "modifiers": [
+          {"type": "clusterDamage", "element": "water", "when": {"orbsExactly": 4}, "factor": 1.8}
+        ]
+      },
+      {
+        "id": "nerea.calm",
+        "name": "Calma Piatta",
+        "unlockLevel": 5,
+        "modifiers": [
+          {"type": "turnHeal", "when": {"combosAtLeast": 3}, "amount": 350},
+          {"type": "clusterDamage", "when": {"orbsExactly": 4}, "factor": 1.3}
+        ]
+      }
+    ],
+    "abilities": [
+      {
+        "id": "nerea.wave",
+        "name": "Onda",
+        "cooldown": 5,
+        "effects": [{"type": "convertOrbs", "from": "fire", "to": "water"}]
+      }
+    ]
+  },
+  {
+    "id": "sylas",
+    "name": "Sylas",
+    "title": "Il Colosso",
+    "element": "wood",
+    "playstyle": "Pochi match enormi (5+ sfere) e tanto scudo.",
+    "baseHP": 5200,
+    "baseAttack": 850,
+    "baseRecovery": 250,
+    "talents": [
+      {
+        "id": "sylas.roots",
+        "name": "Radici Larghe",
+        "unlockLevel": 1,
+        "modifiers": [{"type": "clusterDamage", "when": {"orbsAtLeast": 5}, "factor": 1.7}]
+      },
+      {
+        "id": "sylas.bark",
+        "name": "Corteccia",
+        "unlockLevel": 3,
+        "modifiers": [{"type": "turnShield", "when": {"orbsAtLeast": 15}, "amount": 600}]
+      },
+      {
+        "id": "sylas.forest",
+        "name": "Foresta",
+        "unlockLevel": 5,
+        "modifiers": [{"type": "clusterDamage", "when": {"orbsAtLeast": 6}, "factor": 1.6}]
+      }
+    ],
+    "abilities": [
+      {
+        "id": "sylas.sprout",
+        "name": "Germoglio",
+        "cooldown": 6,
+        "effects": [{"type": "convertOrbs", "from": "light", "to": "wood"}, {"type": "shield", "amount": 800}]
+      }
+    ]
+  },
+  {
+    "id": "lumen",
+    "name": "Lumen",
+    "title": "L'Iride",
+    "element": "light",
+    "playstyle": "Colpisce forte quando abbini tanti colori diversi.",
+    "baseHP": 3800,
+    "baseAttack": 950,
+    "baseRecovery": 450,
+    "talents": [
+      {
+        "id": "lumen.spectrum",
+        "name": "Spettro",
+        "unlockLevel": 1,
+        "modifiers": [{"type": "turnDamage", "when": {"colorsAtLeast": 4}, "factor": 1.7}]
+      },
+      {
+        "id": "lumen.aurora",
+        "name": "Aurora",
+        "unlockLevel": 3,
+        "modifiers": [{"type": "turnHeal", "when": {"colorsAtLeast": 5}, "amount": 500}]
+      },
+      {
+        "id": "lumen.rainbow",
+        "name": "Arcobaleno",
+        "unlockLevel": 5,
+        "modifiers": [{"type": "turnDamage", "when": {"colorsAtLeast": 6}, "factor": 2}]
+      }
+    ],
+    "abilities": [
+      {
+        "id": "lumen.rebirth",
+        "name": "Rinascita",
+        "cooldown": 6,
+        "effects": [{"type": "refreshBoard"}, {"type": "healPercent", "fraction": 0.15}]
+      }
+    ]
+  },
+  {
+    "id": "umbra",
+    "name": "Umbra",
+    "title": "La Berserker",
+    "element": "dark",
+    "playstyle": "Più è ferita, più fa male. Gioca sul filo.",
+    "baseHP": 3400,
+    "baseAttack": 1150,
+    "baseRecovery": 150,
+    "talents": [
+      {
+        "id": "umbra.thirst",
+        "name": "Sete",
+        "unlockLevel": 1,
+        "modifiers": [{"type": "turnDamage", "when": {"hpBelow": 0.5}, "factor": 1.7}]
+      },
+      {
+        "id": "umbra.pact",
+        "name": "Patto",
+        "unlockLevel": 3,
+        "modifiers": [
+          {"type": "damageMultiplier", "factor": 1.25},
+          {"type": "hpLossOnTurnStart", "amount": 80}
+        ]
+      },
+      {
+        "id": "umbra.last-breath",
+        "name": "Ultimo Respiro",
+        "unlockLevel": 5,
+        "modifiers": [{"type": "turnDamage", "when": {"hpBelow": 0.25}, "factor": 2}]
+      }
+    ],
+    "abilities": [
+      {
+        "id": "umbra.eclipse",
+        "name": "Eclissi",
+        "cooldown": 4,
+        "hpCost": 500,
+        "effects": [
+          {"type": "damage", "element": "dark", "target": "allEnemies", "multiplier": 4},
+          {"type": "delayEnemies", "turns": 1}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mira",
+    "name": "Mira",
+    "title": "La Gemella",
+    "element": "fire",
+    "playstyle": "Abbina fuoco e luce nella stessa mossa.",
+    "baseHP": 3900,
+    "baseAttack": 1000,
+    "baseRecovery": 300,
+    "talents": [
+      {
+        "id": "mira.twin-flame",
+        "name": "Doppia Fiamma",
+        "unlockLevel": 1,
+        "modifiers": [{"type": "turnDamage", "when": {"matched": ["fire", "light"]}, "factor": 1.8}]
+      },
+      {
+        "id": "mira.echo",
+        "name": "Eco",
+        "unlockLevel": 3,
+        "modifiers": [
+          {"type": "clusterDamage", "element": "light", "when": {"orbsAtLeast": 4}, "factor": 1.4}
+        ]
+      },
+      {
+        "id": "mira.supernova",
+        "name": "Supernova",
+        "unlockLevel": 5,
+        "modifiers": [
+          {"type": "turnShield", "when": {"matched": ["fire", "light"]}, "amount": 500},
+          {"type": "turnDamage", "when": {"matched": ["fire", "light", "heal"]}, "factor": 1.4}
+        ]
+      }
+    ],
+    "abilities": [
+      {
+        "id": "mira.spark",
+        "name": "Scintilla",
+        "cooldown": 6,
+        "effects": [
+          {"type": "convertOrbs", "from": "wood", "to": "fire"},
+          {"type": "convertOrbs", "from": "dark", "to": "light"}
+        ]
+      }
+    ]
+  }
+]

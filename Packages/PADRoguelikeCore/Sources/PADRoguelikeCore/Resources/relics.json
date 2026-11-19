@@ -1,0 +1,183 @@
+[
+  {
+    "id": "four-leaf-lens",
+    "name": "Lente Quadrifoglio",
+    "rarity": "common",
+    "flavor": "Quattro è il numero perfetto.",
+    "modifiers": [{"type": "clusterDamage", "when": {"orbsExactly": 4}, "factor": 1.5}]
+  },
+  {
+    "id": "giant-hammer",
+    "name": "Martello del Gigante",
+    "rarity": "common",
+    "flavor": "Colpi enormi, ma i piccoli non contano.",
+    "modifiers": [
+      {"type": "clusterDamage", "when": {"orbsAtLeast": 5}, "factor": 1.7},
+      {"type": "clusterDamage", "when": {"orbsExactly": 3}, "factor": 0.8}
+    ]
+  },
+  {
+    "id": "metronome",
+    "name": "Metronomo",
+    "rarity": "common",
+    "flavor": "Tieni il ritmo.",
+    "modifiers": [{"type": "turnDamage", "when": {"combosAtLeast": 5}, "factor": 1.4}]
+  },
+  {
+    "id": "cracked-prism",
+    "name": "Prisma Incrinato",
+    "rarity": "common",
+    "flavor": "Ogni colore lo fa brillare un po' di più.",
+    "modifiers": [{"type": "turnDamage", "when": {"colorsAtLeast": 3}, "factor": 1.3}]
+  },
+  {
+    "id": "red-vial",
+    "name": "Ampolla Rossa",
+    "rarity": "common",
+    "modifiers": [{"type": "turnHeal", "when": {"combosAtLeast": 4}, "amount": 300}]
+  },
+  {
+    "id": "turtle-scale",
+    "name": "Scaglia di Tartaruga",
+    "rarity": "common",
+    "flavor": "Lenta ma sicura.",
+    "modifiers": [{"type": "shieldOnTurnStart", "amount": 250}, {"type": "moveTime", "seconds": -0.5}]
+  },
+  {
+    "id": "hourglass",
+    "name": "Clessidra",
+    "rarity": "common",
+    "flavor": "Più tempo, meno forza.",
+    "modifiers": [{"type": "moveTime", "seconds": 1.5}, {"type": "damageMultiplier", "factor": 0.9}]
+  },
+  {
+    "id": "twin-pearls",
+    "name": "Perle Gemelle",
+    "rarity": "common",
+    "modifiers": [{"type": "turnDamage", "when": {"matched": ["fire", "water"]}, "factor": 1.6}]
+  },
+  {
+    "id": "deep-root",
+    "name": "Radice Profonda",
+    "rarity": "common",
+    "modifiers": [{"type": "turnDamage", "when": {"matched": ["wood", "heal"]}, "factor": 1.5}]
+  },
+  {
+    "id": "loaded-coin",
+    "name": "Moneta Truccata",
+    "rarity": "common",
+    "flavor": "Vinci di più, ma qualcuno se ne accorge.",
+    "modifiers": [{"type": "flatDamage", "amount": 200}, {"type": "damageTakenMultiplier", "factor": 1.15}]
+  },
+  {
+    "id": "bloody-blade",
+    "name": "Lama Insanguinata",
+    "rarity": "rare",
+    "flavor": "Chiede un tributo a ogni colpo.",
+    "modifiers": [{"type": "damageMultiplier", "factor": 1.5}, {"type": "hpLossOnTurnStart", "amount": 120}]
+  },
+  {
+    "id": "berserker-mask",
+    "name": "Maschera del Berserker",
+    "rarity": "rare",
+    "flavor": "Più sanguini, più colpisci.",
+    "modifiers": [{"type": "turnDamage", "when": {"hpBelow": 0.4}, "factor": 2}]
+  },
+  {
+    "id": "balance-crown",
+    "name": "Corona dell'Equilibrio",
+    "rarity": "rare",
+    "flavor": "Premia chi non si fa colpire.",
+    "modifiers": [{"type": "turnDamage", "when": {"hpAbove": 0.8}, "factor": 1.45}]
+  },
+  {
+    "id": "blood-contract",
+    "name": "Contratto di Sangue",
+    "rarity": "rare",
+    "modifiers": [{"type": "damageMultiplier", "factor": 1.4}, {"type": "healMultiplier", "factor": 0.5}]
+  },
+  {
+    "id": "glass-heart",
+    "name": "Cuore di Vetro",
+    "rarity": "rare",
+    "flavor": "Fortissimo. Fragilissimo.",
+    "modifiers": [{"type": "maxHPMultiplier", "factor": 0.7}, {"type": "damageMultiplier", "factor": 1.5}]
+  },
+  {
+    "id": "chain",
+    "name": "Catena",
+    "rarity": "rare",
+    "flavor": "Ogni anello conta. Se ne manca uno, fa male.",
+    "modifiers": [
+      {"type": "comboBonus", "amount": 0.15},
+      {"type": "turnSelfDamage", "when": {"combosAtMost": 2}, "amount": 400}
+    ]
+  },
+  {
+    "id": "rainbow-eye",
+    "name": "Occhio dell'Arcobaleno",
+    "rarity": "rare",
+    "modifiers": [{"type": "turnDamage", "when": {"colorsAtLeast": 5}, "factor": 2.2}]
+  },
+  {
+    "id": "broken-hourglass",
+    "name": "Clessidra Spezzata",
+    "rarity": "rare",
+    "flavor": "Il tempo scorre più in fretta.",
+    "modifiers": [{"type": "moveTime", "seconds": -1.5}, {"type": "damageMultiplier", "factor": 1.6}]
+  },
+  {
+    "id": "thorn-armor",
+    "name": "Armatura di Spine",
+    "rarity": "rare",
+    "modifiers": [{"type": "damageReduction", "amount": 0.25}, {"type": "moveTime", "seconds": -1}]
+  },
+  {
+    "id": "seal-of-four",
+    "name": "Sigillo del Quattro",
+    "rarity": "rare",
+    "modifiers": [
+      {"type": "clusterDamage", "when": {"orbsExactly": 4}, "factor": 1.9},
+      {"type": "clusterDamage", "when": {"orbsAtLeast": 5}, "factor": 0.7}
+    ]
+  },
+  {
+    "id": "chaos-crown",
+    "name": "Corona del Caos",
+    "rarity": "legendary",
+    "modifiers": [
+      {"type": "turnDamage", "when": {"combosAtLeast": 7}, "factor": 2.5},
+      {"type": "turnShield", "when": {"combosAtLeast": 5}, "amount": 600}
+    ]
+  },
+  {
+    "id": "dark-pact",
+    "name": "Patto Oscuro",
+    "rarity": "legendary",
+    "flavor": "Il doppio della forza. Il doppio del dolore.",
+    "modifiers": [
+      {"type": "damageMultiplier", "factor": 2},
+      {"type": "damageTakenMultiplier", "factor": 1.5},
+      {"type": "healMultiplier", "factor": 0.5}
+    ]
+  },
+  {
+    "id": "phoenix-heart",
+    "name": "Cuore di Fenice",
+    "rarity": "legendary",
+    "flavor": "Rinasce quando sta per spegnersi.",
+    "modifiers": [
+      {"type": "turnHeal", "when": {"hpBelow": 0.35}, "amount": 1000},
+      {"type": "turnDamage", "when": {"hpBelow": 0.35}, "factor": 1.5}
+    ]
+  },
+  {
+    "id": "singularity",
+    "name": "Singolarità",
+    "rarity": "legendary",
+    "modifiers": [
+      {"type": "clusterDamage", "when": {"orbsAtLeast": 6}, "factor": 3},
+      {"type": "comboBonus", "amount": -0.1}
+    ]
+  }
+]

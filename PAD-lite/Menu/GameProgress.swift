@@ -14,7 +14,7 @@ final class GameProgress {
     private enum Key {
         static let moveDuration = "moveDuration"
         static let hapticsEnabled = "hapticsEnabled"
-        static let runState = "runState.v2"
+        static let runState = "runState.v3"
     }
 
     var settings: GameSettings {

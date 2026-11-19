@@ -1,0 +1,110 @@
+[
+  {
+    "id": "blood-altar",
+    "title": "Altare di Sangue",
+    "text": "Una pietra nera pulsa nel buio. Una voce sussurra: \"Il potere ha un prezzo.\"",
+    "options": [
+      {
+        "label": "Offri il tuo sangue (-25% HP): reliquia rara",
+        "effects": [{"type": "loseHP", "fraction": 0.25}, {"type": "gainRelic", "rarity": "rare"}]
+      },
+      {"label": "Allontanati"}
+    ]
+  },
+  {
+    "id": "fountain",
+    "title": "Fontana Antica",
+    "text": "L'acqua è limpida e luccica di magia. Sul fondo, monete di avventurieri passati.",
+    "options": [
+      {"label": "Bevi (+40% HP)", "effects": [{"type": "heal", "fraction": 0.4}]},
+      {
+        "label": "Getta 40 oro ed esprimi un desiderio: +1 livello",
+        "effects": [{"type": "loseGold", "amount": 40}, {"type": "levelUp"}]
+      }
+    ]
+  },
+  {
+    "id": "gambler",
+    "title": "Il Giocatore",
+    "text": "Un uomo con un sorriso storto mescola le carte. \"Una partita, straniero?\"",
+    "options": [
+      {
+        "label": "Paga 60 oro: reliquia rara",
+        "effects": [{"type": "loseGold", "amount": 60}, {"type": "gainRelic", "rarity": "rare"}]
+      },
+      {
+        "label": "Sfidalo a duello: +40 oro, poi combatti",
+        "effects": [{"type": "gainGold", "amount": 40}, {"type": "fight", "kind": "combat"}]
+      },
+      {"label": "Rifiuta"}
+    ]
+  },
+  {
+    "id": "wounded-knight",
+    "title": "Cavaliere Ferito",
+    "text": "Un cavaliere giace contro un albero, l'armatura squarciata. Accanto a lui, una borsa piena.",
+    "options": [
+      {
+        "label": "Curalo (-15% HP): ti insegna una tecnica, +1 livello",
+        "effects": [{"type": "loseHP", "fraction": 0.15}, {"type": "levelUp"}]
+      },
+      {
+        "label": "Prendi la borsa (+90 oro): si rialza e ti attacca",
+        "effects": [{"type": "gainGold", "amount": 90}, {"type": "fight", "kind": "elite"}]
+      },
+      {"label": "Lascialo in pace"}
+    ]
+  },
+  {
+    "id": "glowing-mushrooms",
+    "title": "Funghi Luminosi",
+    "text": "Un cerchio di funghi brilla di luce viola. L'aria sa di miele e di guai.",
+    "options": [
+      {
+        "label": "Mangiane uno (-20% HP): +1 livello",
+        "effects": [{"type": "loseHP", "fraction": 0.2}, {"type": "levelUp"}]
+      },
+      {"label": "Raccoglili e vendili: +35 oro", "effects": [{"type": "gainGold", "amount": 35}]}
+    ]
+  },
+  {
+    "id": "suspicious-chest",
+    "title": "Forziere Sospetto",
+    "text": "Un forziere dorato, troppo bello per essere vero, in mezzo al corridoio.",
+    "options": [
+      {
+        "label": "Aprilo: reliquia, ma scatta una trappola (-20% HP)",
+        "effects": [{"type": "gainRelic", "rarity": "common"}, {"type": "loseHP", "fraction": 0.2}]
+      },
+      {"label": "Non fidarti"}
+    ]
+  },
+  {
+    "id": "light-shrine",
+    "title": "Santuario della Luce",
+    "text": "Un santuario sigillato. Dietro il sigillo qualcosa di antico si muove.",
+    "options": [
+      {"label": "Prega (+25% HP)", "effects": [{"type": "heal", "fraction": 0.25}]},
+      {
+        "label": "Spezza il sigillo: reliquia leggendaria, ma il guardiano si sveglia",
+        "effects": [{"type": "gainRelic", "rarity": "legendary"}, {"type": "fight", "kind": "elite"}]
+      }
+    ]
+  },
+  {
+    "id": "ghost-merchant",
+    "title": "Mercante Fantasma",
+    "text": "Una figura trasparente apre un mantello pieno di ninnoli. \"Accetto oro... o sangue.\"",
+    "options": [
+      {
+        "label": "Vendi sangue (-30% HP): +100 oro",
+        "effects": [{"type": "loseHP", "fraction": 0.3}, {"type": "gainGold", "amount": 100}]
+      },
+      {
+        "label": "Compra un amuleto (75 oro): reliquia rara",
+        "effects": [{"type": "loseGold", "amount": 75}, {"type": "gainRelic", "rarity": "rare"}]
+      },
+      {"label": "Vai via"}
+    ]
+  }
+]
